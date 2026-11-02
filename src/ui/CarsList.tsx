@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, type HostInstance, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { nextBookingForCar } from '../logic/bookings';
+import { bookingStatus, nextBookingForCar } from '../logic/bookings';
 import { isInLot } from '../logic/geo';
 import { can, canUnlockCar } from '../logic/permissions';
 import type { Booking, Car, CarTelemetry } from '../logic/types';
@@ -33,10 +33,18 @@ export function CarsList() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<CarFilter>('all');
 
-  const unlocked = cars.filter((c) => telemetry[c.id]?.lockState === 'unlocked');
-  const inLot = cars.filter((c) => telemetry[c.id] && isInLot(telemetry[c.id].position, settings.homeLot));
-  const driving = cars.filter((c) => telemetry[c.id]?.moving);
-  const away = cars.length - inLot.length - driving.length;
+  // The locomotive (layout L1): lock status only counts for cars parked in the lot; cars on a trip
+  // are the guest's to lock, so they're counted separately with when they're back.
+  const trips = cars.flatMap((c) => {
+    const b = bookings.find((x) => x.carId === c.id && bookingStatus(x, now) === 'active');
+    return b ? [{ car: c, back: b.tripEnd }] : [];
+  });
+  const onTrip = new Set(trips.map((x) => x.car.id));
+  const lotCars = cars.filter((c) => !onTrip.has(c.id) && telemetry[c.id] && isInLot(telemetry[c.id].position, settings.homeLot));
+  const lotUnlocked = lotCars.filter((c) => telemetry[c.id]?.lockState === 'unlocked');
+  const awayCars = cars.filter((c) => !onTrip.has(c.id) && telemetry[c.id] && !isInLot(telemetry[c.id].position, settings.homeLot));
+  const leftUnlocked = cars.filter((c) => !onTrip.has(c.id) && telemetry[c.id]?.lockState === 'unlocked');
+  const nextBack = trips.map((x) => x.back).sort()[0];
   const band = getAppearance() === 'light';
 
   // Built to scale past a handful of cars: every car's key facts, then search + filter + sort.
@@ -59,9 +67,9 @@ export function CarsList() {
     // Cars that need you first, then unlocked ones, then by name.
     .sort((a, b) => Number(b.needs) - Number(a.needs) || Number(b.open) - Number(a.open) || carName(a.car).localeCompare(carName(b.car)));
 
-  const lockAll = async () => {
+  const lockLot = async () => {
     setLockingAll(true);
-    await Promise.all(unlocked.map((c) => lockCar(c.id)));
+    await Promise.all(lotUnlocked.map((c) => lockCar(c.id)));
     setLockingAll(false);
   };
 
@@ -91,13 +99,14 @@ export function CarsList() {
 
         <PopIn>
           <Locomotive
-            total={cars.length}
-            unlocked={unlocked.length}
-            inLot={inLot.length}
-            driving={driving.length}
-            away={Math.max(0, away)}
+            lot={lotCars.length}
+            lotUnlocked={lotUnlocked.length}
+            onTrip={trips.length}
+            backLabel={nextBack ? `back ${shortWhen(nextBack, now)}` : ''}
+            away={awayCars.length}
+            leftUnlocked={leftUnlocked.length}
             busy={lockingAll}
-            onLockAll={lockAll}
+            onLockLot={lockLot}
           />
         </PopIn>
 
@@ -130,25 +139,37 @@ export function CarsList() {
   );
 }
 
-/** Lead engine: the logo's gradient and a cab with gold windows. */
+/**
+ * Lead engine (layout L1): the logo's gradient and a cab with gold windows. Its headline is the lot:
+ * how many cars are parked there and whether they're locked, with Lock lot cars. Under it: cars on a
+ * trip (and when the first is back), cars away with no trip, and cars left unlocked anywhere off-trip.
+ */
 function Locomotive({
-  total,
-  unlocked,
-  inLot,
-  driving,
+  lot,
+  lotUnlocked,
+  onTrip,
+  backLabel,
   away,
+  leftUnlocked,
   busy,
-  onLockAll,
+  onLockLot,
 }: {
-  total: number;
-  unlocked: number;
-  inLot: number;
-  driving: number;
+  lot: number;
+  lotUnlocked: number;
+  onTrip: number;
+  backLabel: string;
   away: number;
+  leftUnlocked: number;
   busy: boolean;
-  onLockAll: () => void;
+  onLockLot: () => void;
 }) {
-  const allLocked = unlocked === 0;
+  const lotLocked = lotUnlocked === 0;
+  const headline =
+    lot === 0
+      ? 'No cars parked'
+      : lotLocked
+        ? `${lot} parked · ${lot === 1 ? 'locked' : lot === 2 ? 'both locked' : 'all locked'}`
+        : `${lotUnlocked} of ${lot} unlocked`;
   return (
     <View style={{ paddingBottom: 12, marginTop: 12 }}>
       {/* cab */}
@@ -191,36 +212,44 @@ function Locomotive({
         <LogoGradient />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.6, color: LOGO.gold }}>YOUR FLEET</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: allLocked ? '#FFFFFF' : '#FFD39A' }}>{allLocked ? `All ${total} locked` : `${unlocked} unlocked`}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.6, color: LOGO.gold }}>IN THE LOT</Text>
+            <Text style={{ fontSize: 21, fontWeight: '800', color: lotLocked ? '#FFFFFF' : '#FFD39A' }}>{headline}</Text>
           </View>
-          <Bouncy
-            onPress={onLockAll}
-            disabled={allLocked || busy}
-            accessibilityRole="button"
-            accessibilityLabel={allLocked ? 'All cars locked' : `Lock all ${unlocked} unlocked cars`}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              height: 42,
-              paddingHorizontal: 14,
-              borderRadius: isGlass() ? 999 : 12,
-              backgroundColor: allLocked ? 'rgba(255,255,255,0.14)' : LOGO.gold,
-            }}
-          >
-            {busy ? (
-              <ActivityIndicator color={LOGO.to} />
-            ) : (
-              <Ionicons name={allLocked ? 'checkmark-circle' : 'lock-closed'} size={16} color={allLocked ? '#BFF0CF' : LOGO.to} />
-            )}
-            <Text style={{ fontSize: 14, fontWeight: '800', color: allLocked ? '#FFFFFF' : LOGO.to }}>{allLocked ? 'All locked' : 'Lock all'}</Text>
-          </Bouncy>
+          {lot > 0 && lotLocked ? (
+            // Everything parked is locked: just a small check (the headline already says so).
+            <View
+              accessible
+              accessibilityLabel="Cars in the lot are locked"
+              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="checkmark" size={20} color="#BFF0CF" />
+            </View>
+          ) : lot > 0 ? (
+            <Bouncy
+              onPress={onLockLot}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel={`Lock the ${lotUnlocked} unlocked ${lotUnlocked === 1 ? 'car' : 'cars'} in the lot`}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                height: 42,
+                paddingHorizontal: 14,
+                borderRadius: isGlass() ? 999 : 12,
+                backgroundColor: LOGO.gold,
+              }}
+            >
+              {busy ? <ActivityIndicator color={LOGO.to} /> : <Ionicons name="lock-closed" size={16} color={LOGO.to} />}
+              <Text style={{ fontSize: 14, fontWeight: '800', color: LOGO.to }}>Lock lot cars</Text>
+            </Bouncy>
+          ) : null}
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          <LocoChip label={`${inLot} in lot`} />
-          <LocoChip label={`${driving} driving`} />
-          <LocoChip label={`${away} away`} />
+        <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.18)' }} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <LocoStat label="ON TRIP" value={onTrip ? `${onTrip}${backLabel ? ` · ${backLabel}` : ''}` : '0'} />
+          <LocoStat label="AWAY" value={away ? `${away} · no trip` : '0'} />
+          <LocoStat label="LEFT UNLOCKED" value={String(leftUnlocked)} warn={leftUnlocked > 0} />
         </View>
       </View>
       <Track />
@@ -228,10 +257,15 @@ function Locomotive({
   );
 }
 
-function LocoChip({ label }: { label: string }) {
+function LocoStat({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
   return (
-    <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: '#E6DCFA' }}>{label}</Text>
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#D9CCF7' }} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={{ fontSize: 15, fontWeight: '800', color: warn ? '#FFD39A' : '#FFFFFF', marginTop: 1 }} numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -392,6 +426,13 @@ function needsYou(t: CarTelemetry | undefined, next: Booking | undefined, now: D
   if (t?.lockState === 'unlocked') return true;
   if (!next || !showGuest || Date.parse(next.tripStart) <= now.getTime()) return false;
   return next.checkIn.state === 'waiting' && !next.linkSentAt && Date.parse(next.tripStart) - now.getTime() < 24 * 3600_000;
+}
+
+/** Very short "when" for the locomotive: "6:00 PM" today, else the weekday ("Tue"). */
+function shortWhen(iso: string, now: Date) {
+  const d = new Date(iso);
+  if (d.toDateString() === now.toDateString()) return fmtClock(iso);
+  return d.toLocaleDateString(undefined, { weekday: 'short' });
 }
 
 /** Short time for a carriage line: "1:38 PM", "tomorrow 10:00 AM", "Thu 10:15 AM". */
