@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn, tomorrow } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
@@ -78,21 +78,7 @@ export default function OverviewScreen() {
         <Muted>{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Muted>
       </View>
 
-      {attention.length ? (
-        <Tile icon="alert-circle" title="Needs attention" tone="warn">
-          {attention.slice(0, 5).map((a, i) => (
-            <Pressable key={i} onPress={() => router.push(a.to)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-              <Ionicons name={a.icon} size={16} color={colors.unlocked} />
-              <Text style={{ flex: 1, color: colors.text, fontSize: 14 }}>{a.text}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.muted} />
-            </Pressable>
-          ))}
-        </Tile>
-      ) : (
-        <Tile icon="checkmark-circle" title="All good" tone="good">
-          <Muted>All cars locked. Nothing needs you right now.</Muted>
-        </Tile>
-      )}
+      <AttentionBar items={attention} />
 
       <Tile icon="checkbox" title={`Tasks${openTasks.length ? ` · ${openTasks.length} open` : ''}`} onPress={() => router.push('/tasks')} action="All tasks" headerLinkOnly>
         {overdueCount ? (
@@ -267,6 +253,51 @@ function Tile({
       {header}
       {children}
     </Pressable>
+  );
+}
+
+/** Slim bar with the count and the most urgent item; tap to expand the full list. */
+function AttentionBar({ items }: { items: { icon: IconName; text: string; to: Href }[] }) {
+  const [open, setOpen] = useState(false);
+  if (!items.length) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.lockedBg, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12 }}>
+        <Ionicons name="checkmark-circle" size={18} color={colors.locked} />
+        <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>All good. Nothing needs you right now.</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{ backgroundColor: colors.unlockedBg, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12, gap: 4 }}>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`Needs attention, ${items.length} ${items.length === 1 ? 'item' : 'items'}. ${open ? 'Collapse' : 'Expand'}`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+      >
+        <Ionicons name="alert-circle" size={18} color={colors.unlocked} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>Needs attention · {items.length}</Text>
+          {!open ? (
+            <Text style={{ color: colors.muted, fontSize: 13 }} numberOfLines={1}>
+              {items[0].text}
+              {items.length > 1 ? ` +${items.length - 1} more` : ''}
+            </Text>
+          ) : null}
+        </View>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.unlocked} />
+      </Pressable>
+      {open
+        ? items.map((a, i) => (
+            <Pressable key={i} onPress={() => router.push(a.to)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, paddingLeft: 26 }}>
+              <Ionicons name={a.icon} size={15} color={colors.unlocked} />
+              <Text style={{ flex: 1, color: colors.text, fontSize: 14 }}>{a.text}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+            </Pressable>
+          ))
+        : null}
+    </View>
   );
 }
 

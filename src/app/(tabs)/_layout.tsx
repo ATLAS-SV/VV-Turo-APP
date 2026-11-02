@@ -29,10 +29,10 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
     >
       <View
         style={{
-          width: 62,
-          height: 62,
-          borderRadius: 31,
-          marginTop: -22,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          marginTop: -24,
           backgroundColor: selected ? colors.primary : colors.primaryDark,
           borderWidth: 4,
           borderColor: colors.card,
@@ -45,9 +45,9 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
           elevation: 6,
         }}
       >
-        <Ionicons name="grid" size={26} color={colors.accent} />
+        <Ionicons name="grid" size={24} color={colors.accent} />
       </View>
-      <Text style={{ fontSize: 11, marginTop: 1, fontWeight: '700', color: selected ? colors.primary : colors.muted }}>Overview</Text>
+      <Text style={{ fontSize: 10, marginTop: 0, fontWeight: '700', color: selected ? colors.primary : colors.muted }}>Overview</Text>
     </Pressable>
   );
 }

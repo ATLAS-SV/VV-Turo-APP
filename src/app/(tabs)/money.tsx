@@ -12,9 +12,10 @@ import {
 import { can } from '../../logic/permissions';
 import { carName, useNow, useStore } from '../../state/AppStore';
 import { Card, colors, fmtMoney, fmtTime, KeyValue, Muted, Row, Screen, SectionTitle } from '../../ui/components';
-import { EARNING_COLORS, EarningsChart } from '../../ui/EarningsChart';
+import { DonutChart, type DonutSlice } from '../../ui/DonutChart';
+import { EARNING_COLORS, UPCOMING_COLOR } from '../../ui/earningColors';
 
-/** Earnings by month, like Turo's earnings page: earned, upcoming, by type, and payouts. Executive only. */
+/** Earnings by month: big numbers, a donut of where the money came from, by car, and payouts. Executive only. */
 export default function MoneyScreen() {
   const { currentUser, bookings, earningExtras, payouts, cars } = useStore();
   const now = useNow(60_000);
@@ -31,9 +32,21 @@ export default function MoneyScreen() {
 
   const when = monthWhen(month, now);
   const sum = summarizeMonth(items, payouts, month, now);
-  const chartMonths = [-3, -2, -1, 0, 1, 2].map((o) => addMonths(month, o));
-  const chartData = chartMonths.map((m) => ({ month: m, byType: summarizeMonth(items, payouts, m, now).byType }));
   const thisMonth = monthKey(now);
+  const prev = summarizeMonth(items, payouts, addMonths(month, -1), now);
+  const total = sum.earned + sum.upcoming;
+  const prevTotal = prev.earned + prev.upcoming;
+  const change = prevTotal > 0 && when !== 'future' ? Math.round(((total - prevTotal) / prevTotal) * 100) : null;
+
+  const reimb = sum.byType.reimbursement.earned + sum.byType.reimbursement.upcoming;
+  const incent = sum.byType.incentive.earned + sum.byType.incentive.upcoming;
+  const slices: DonutSlice[] = [
+    { key: 'trip', label: 'Trip earnings', value: sum.byType.trip.earned, color: EARNING_COLORS.trip },
+    { key: 'upcoming', label: 'Upcoming', value: sum.upcoming, color: UPCOMING_COLOR },
+    { key: 'reimb', label: 'Reimbursements', value: reimb, color: EARNING_COLORS.reimbursement },
+    { key: 'incent', label: 'Incentives', value: incent, color: EARNING_COLORS.incentive },
+  ];
+  const pct = (v: number) => (total > 0 ? `${Math.round((v / total) * 100)}%` : '—');
 
   return (
     <Screen>
@@ -53,30 +66,37 @@ export default function MoneyScreen() {
         <ArrowButton icon="chevron-forward" label="Next month" onPress={() => setMonth(addMonths(month, 1))} />
       </Row>
 
-      {/* Headline numbers */}
-      <Card style={{ flexDirection: 'row', gap: 12 }}>
-        {when !== 'future' ? <Stat label={when === 'past' ? 'Total earned' : 'Earned so far'} value={sum.earned} big /> : null}
-        {when !== 'past' ? <Stat label={when === 'future' ? 'Upcoming earnings' : 'Upcoming'} value={sum.upcoming} big={when === 'future'} /> : null}
-        <Stat label="Trips" value={sum.tripCount} plain />
+      {/* Big numbers with the donut alongside */}
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18 }}>
+        <View style={{ flex: 1, gap: 12 }}>
+          {when !== 'future' ? (
+            <BigNumber label={when === 'past' ? 'Total earned' : 'Earned so far'} value={sum.earned} size={32} />
+          ) : null}
+          {when !== 'past' ? (
+            <BigNumber label={when === 'future' ? 'Upcoming earnings' : 'Upcoming'} value={sum.upcoming} size={when === 'future' ? 32 : 24} />
+          ) : null}
+          <View>
+            <Text style={{ fontSize: 15, color: colors.text, fontWeight: '600' }}>
+              {sum.tripCount} {sum.tripCount === 1 ? 'trip' : 'trips'}
+            </Text>
+            {change !== null ? (
+              <Text style={{ fontSize: 13, fontWeight: '600', color: change >= 0 ? colors.locked : colors.danger }}>
+                {change >= 0 ? '▲' : '▼'} {Math.abs(change)}% vs {monthLabel(addMonths(month, -1), 'short')}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <DonutChart slices={slices} size={146} centerLabel="Total" centerValue={money0(total)} />
       </Card>
 
+      {/* Breakdown = the donut's legend, with amounts and shares */}
       <Card>
-        <EarningsChart data={chartData} selected={month} onSelect={setMonth} />
-      </Card>
-
-      <SectionTitle>Breakdown</SectionTitle>
-      <Card>
-        <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} />
-        <BreakdownRow color={EARNING_COLORS.trip} faded label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} />
-        <BreakdownRow
-          color={EARNING_COLORS.reimbursement}
-          label="Reimbursements"
-          sub="Tolls, fuel, claim payouts"
-          value={sum.byType.reimbursement.earned + sum.byType.reimbursement.upcoming}
-        />
-        <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={sum.byType.incentive.earned + sum.byType.incentive.upcoming} />
+        <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
+        <BreakdownRow color={UPCOMING_COLOR} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
+        <BreakdownRow color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
+        <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
         <View style={{ height: 1, backgroundColor: colors.border }} />
-        <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the totals." value={sum.missed} muted />
+        <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the total." value={sum.missed} muted />
       </Card>
 
       {Object.keys(sum.byCar).length ? (
@@ -119,28 +139,37 @@ export default function MoneyScreen() {
   );
 }
 
-function BreakdownRow({ color, label, sub, value, faded, muted }: { color: string; label: string; sub: string; value: number; faded?: boolean; muted?: boolean }) {
+function BreakdownRow({ color, label, sub, value, share, muted }: { color: string; label: string; sub: string; value: number; share?: string; muted?: boolean }) {
   return (
-    <Row style={{ justifyContent: 'space-between', paddingVertical: 3, alignItems: 'flex-start' }}>
+    <Row style={{ justifyContent: 'space-between', paddingVertical: 4, alignItems: 'flex-start' }}>
       <Row style={{ flex: 1, alignItems: 'flex-start' }}>
-        <View style={{ width: 12, height: 12, borderRadius: 3, marginTop: 4, backgroundColor: color, opacity: faded ? 0.38 : 1 }} />
+        <View style={{ width: 14, height: 14, borderRadius: 4, marginTop: 4, backgroundColor: color }} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 15 }}>{label}</Text>
+          <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 16, fontWeight: '600' }}>{label}</Text>
           <Muted style={{ fontSize: 12 }}>{sub}</Muted>
         </View>
       </Row>
-      <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 15, fontWeight: '600' }}>{fmtMoney(value)}</Text>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 18, fontWeight: '700' }}>{fmtMoney(value)}</Text>
+        {share ? <Muted style={{ fontSize: 12 }}>{share} of total</Muted> : null}
+      </View>
     </Row>
   );
 }
 
-function Stat({ label, value, big, plain }: { label: string; value: number; big?: boolean; plain?: boolean }) {
+function BigNumber({ label, value, size }: { label: string; value: number; size: number }) {
   return (
-    <View style={{ flex: plain ? 0.6 : 1, gap: 2 }}>
+    <View>
       <Muted style={{ fontSize: 13 }}>{label}</Muted>
-      <Text style={{ fontSize: big ? 26 : 20, fontWeight: '800', color: colors.text }}>{plain ? value : fmtMoney(value)}</Text>
+      <Text style={{ fontSize: size, fontWeight: '800', color: colors.text }} adjustsFontSizeToFit numberOfLines={1}>
+        {fmtMoney(value)}
+      </Text>
     </View>
   );
+}
+
+function money0(n: number) {
+  return n >= 10_000 ? `$${(n / 1000).toFixed(1)}k` : `$${Math.round(n).toLocaleString('en-US')}`;
 }
 
 function ArrowButton({ icon, label, onPress }: { icon: 'chevron-back' | 'chevron-forward'; label: string; onPress: () => void }) {
