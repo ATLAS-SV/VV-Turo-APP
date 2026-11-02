@@ -5,10 +5,12 @@ import { lockedUntil, validatePinFormat } from '../logic/pin';
 import { DEMO_MODE, DEMO_PINS, useNow, useStore } from '../state/AppStore';
 import { PinPad } from '../ui/PinPad';
 import { LogoScreen } from '../ui/Brand';
+import { useLogoTransition } from '../ui/logoTransitionContext';
 
 /** App opens here. The PIN decides who you are and whether you're Executive or Employee. */
 export default function SignIn() {
   const { users, signIn, pinLockout } = useStore();
+  const logo = useLogoTransition();
   const now = useNow(1000);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export default function SignIn() {
         disabled={!!until}
         error={until ? `Too many wrong PINs. Try again in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : error}
         onSubmit={async (pin) => {
-          const r = await signIn(pin);
+          const r = await signIn(pin, logo.begin);
           setError(r.ok ? null : r.error);
         }}
       />
@@ -42,6 +44,7 @@ export default function SignIn() {
 /** Very first launch only: same PIN pad, used to create the Executive PIN. */
 function FirstRunSetup() {
   const { createFirstExecutive } = useStore();
+  const logo = useLogoTransition();
   const [step, setStep] = useState<'pin' | 'confirm'>('pin');
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +74,7 @@ function FirstRunSetup() {
             setStep('pin');
             return;
           }
-          const r = await createFirstExecutive('Sebastian', p);
+          const r = await createFirstExecutive('Sebastian', p, logo.begin);
           if (!r.ok) {
             setError(r.error);
             setStep('pin');

@@ -6,6 +6,7 @@ import { AppStoreProvider, useStore } from '../state/AppStore';
 import { colors, Toasts } from '../ui/components';
 import { BRAND, Logo } from '../ui/Brand';
 import { ExpandProvider } from '../ui/motion';
+import { LogoTransitionProvider } from '../ui/LogoTransition';
 
 /** Pages opened by a box expanding into them fade in under it instead of sliding. */
 const EXPANDED_PAGE = { animation: 'fade' as const, animationDuration: 180 };
@@ -52,7 +53,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AppStoreProvider>
         <ExpandProvider>
-          <RootStack />
+          <LogoTransitionProvider>
+            <RootStack />
+          </LogoTransitionProvider>
         </ExpandProvider>
       </AppStoreProvider>
     </SafeAreaProvider>

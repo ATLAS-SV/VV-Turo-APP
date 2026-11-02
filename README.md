@@ -94,6 +94,7 @@ npx expo lint
 | **Overview** (raised middle tab, opens after the PIN): one condensed screen of boxes: To do (alerts + tasks), Fleet, Money (mini donut), Bookings brief, Map, Hours; tap a box to open its page | `src/app/(tabs)/index.tsx` |
 | **Tasks**: every booking auto-gets a checklist (confirm license, check-in photos, dash photo; check-out photos + dash photo after return) plus pending claims; due-soon and overdue reminders in-app and as phone notifications | `src/logic/tasks.ts`, `src/app/tasks.tsx`, `src/services/notifications.ts` |
 | PIN pad is the first screen; the PIN decides the person, the role, and which page opens (set per person in Team & PINs); app locks after 5 wrong tries (5 min, then 10, 20…) | `src/app/sign-in.tsx`, `src/logic/pin.ts` |
+| Sign-in: the full-screen logo shrinks into the small VV logo in the header as the app opens | `src/ui/LogoTransition.tsx` |
 | Motion: swipe left/right on any tab page to move to the next tab (it slides in from that side; off on the Map, which needs dragging); tapping a box or card grows it into the page it opens | `src/ui/motion.tsx` |
 | Tab bar (5 per role, Overview in the middle). Executive: Cars & Bookings · Map · Overview · Money · More. Employee: Cars & Trips · Map · Overview · Hours · More. Activity log, Tasks and Hours (Executive) are in More | `src/app/(tabs)/_layout.tsx` |
 | All cars on one screen; one-tap lock, unlock always asks for the PIN | `src/ui/CarsList.tsx` |

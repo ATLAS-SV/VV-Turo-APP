@@ -355,8 +355,9 @@ function useAppStoreValue() {
     [update, log],
   );
 
+  /** `switchWith` lets the sign-in screen run its transition before the app appears. */
   const signIn = useCallback(
-    async (pin: string): Promise<Result> => {
+    async (pin: string, switchWith?: (switchToApp: () => void) => void): Promise<Result> => {
       const until = lockedUntil(ref.current.pinLockout, new Date());
       if (until) return { ok: false, error: `Locked. Try again at ${until.toLocaleTimeString()}.` };
       const user = await findUserByPin(ref.current.users, pin);
@@ -364,7 +365,9 @@ function useAppStoreValue() {
         const lock = pinFailure(null);
         return { ok: false, error: lock ? `Too many attempts. Locked until ${lock.toLocaleTimeString()}.` : 'Wrong PIN.' };
       }
-      update((s) => ({ ...s, currentUserId: user.id, pinLockout: NO_LOCKOUT }));
+      const switchToApp = () => update((s) => ({ ...s, currentUserId: user.id, pinLockout: NO_LOCKOUT }));
+      if (switchWith) switchWith(switchToApp);
+      else switchToApp();
       return { ok: true };
     },
     [update, pinFailure],
@@ -376,7 +379,7 @@ function useAppStoreValue() {
     !!(await findUserByPin(ref.current.users.filter((u) => u.id !== exceptUserId), pin));
 
   const createFirstExecutive = useCallback(
-    async (name: string, pin: string): Promise<Result> => {
+    async (name: string, pin: string, switchWith?: (switchToApp: () => void) => void): Promise<Result> => {
       if (ref.current.users.length) return { ok: false, error: 'Already set up.' };
       const err = validatePinFormat(pin);
       if (err) return { ok: false, error: err };
@@ -388,7 +391,9 @@ function useAppStoreValue() {
         createdAt: new Date().toISOString(),
         ...(await makePinRecord(pin)),
       };
-      update((s) => ({ ...s, users: [user], currentUserId: user.id }));
+      const switchToApp = () => update((s) => ({ ...s, users: [user], currentUserId: user.id }));
+      if (switchWith) switchWith(switchToApp);
+      else switchToApp();
       return { ok: true };
     },
     [update],

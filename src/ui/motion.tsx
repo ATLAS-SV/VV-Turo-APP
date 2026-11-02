@@ -16,6 +16,9 @@ AccessibilityInfo.isReduceMotionEnabled()
   .then((v) => (reduceMotion = v))
   .catch(() => {});
 AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => (reduceMotion = v));
+
+/** True when the phone's Reduce Motion setting is on. */
+export const prefersReducedMotion = () => reduceMotion;
 export { useExpand } from './expandContext';
 
 const EXPAND_MS = 280;
