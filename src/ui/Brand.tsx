@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, Platform, Text, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { measure, useLogoTransition } from './logoTransitionContext';
-import { TunnelScene } from './TunnelScene';
+import { RAIL_Y, TrackRun } from './TrackRun';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAppearance, isLightLook, theme } from './theme';
 
@@ -45,8 +45,13 @@ export function HeaderMark() {
   const ref = useRef<HostInstance>(null);
   const { addTarget } = useLogoTransition();
   useEffect(() => addTarget(ref.current), [addTarget]);
+  const { width } = useWindowDimensions();
   return (
     <View style={{ marginLeft: 16 }}>
+      {/* Tracks run out of the logo's right side along the bottom of the bar, with a car speeding on them. */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: HEADER_MARK_SIZE - 1, top: HEADER_MARK_SIZE + 0.5 - RAIL_Y }}>
+        <TrackRun width={Math.min(width, 700) - 16 - HEADER_MARK_SIZE - 14} color={isLightLook() ? theme.primary : theme.accent} opacity={0.32} delay={900} />
+      </View>
       <View ref={ref} style={{ width: HEADER_MARK_SIZE, height: HEADER_MARK_SIZE }}>
         <LogoMark size={HEADER_MARK_SIZE} />
       </View>
@@ -194,9 +199,13 @@ export function LogoScreen({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const win = useWindowDimensions();
   const short = win.height < 740; // e.g. iPhone SE: scale the monogram down
-  // The little tunnel-and-car drawing fills the empty space at the top on taller phones.
-  const showScene = win.height >= 780;
-  const sceneW = Math.min(300, win.width - 72);
+  // Tracks run out of the right side of the big VV (the logo is the tunnel exit) with a car on them.
+  const [vvW, setVvW] = useState(0);
+  const trackScale = short ? 1.2 : 1.7;
+  const vvSize = vvFontSize(short);
+  const baseline = (vvSize * VV_LINE - vvSize * 1.107) / 2 + vvSize * 0.891; // Times-style serif metrics
+  const tuck = vvSize * 0.28; // start under the right V's arm, next to its point
+  const trackW = vvW ? (win.width - 60 - vvW) / 2 + 6 + tuck : 0;
 
   // Tell the sign-in transition where the big logo pieces are, so it can shrink them from there.
   const { setSource } = useLogoTransition();
@@ -230,20 +239,25 @@ export function LogoScreen({ children }: { children: ReactNode }) {
           },
         ]}
       >
-        {showScene ? (
-          <View pointerEvents="none" style={{ position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center' }}>
-            <TunnelScene width={sceneW} color={look.mono} opacity={look.lightText ? 0.42 : 0.34} />
-          </View>
-        ) : null}
+        <View>
         <Text
           ref={vvRef}
-          onLayout={report}
+          onLayout={(e) => {
+            setVvW(e.nativeEvent.layout.width);
+            report();
+          }}
           accessibilityRole="header"
           accessibilityLabel="Valadon Ventures"
           style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: vvFontSize(short), lineHeight: vvFontSize(short) * VV_LINE, color: look.mono, letterSpacing: -2 }}
         >
           VV
         </Text>
+          {trackW > 0 ? (
+            <View pointerEvents="none" style={{ position: 'absolute', left: vvW - tuck, top: baseline - RAIL_Y * trackScale }}>
+              <TrackRun width={trackW} scale={trackScale} color={look.mono} opacity={look.lightText ? 0.5 : 0.42} delay={500} />
+            </View>
+          ) : null}
+        </View>
         <View ref={nameRef} onLayout={report} style={{ alignItems: 'center' }}>
           <CompanyName short={short} color={look.mono} />
         </View>
