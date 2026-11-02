@@ -11,8 +11,8 @@ import { carName, useNow, useStore } from '../state/AppStore';
 import { Bouncy, glassFx, isGlass, PopIn } from './bubble';
 import { colors, fmtClock, Muted } from './components';
 import { useCarriageMorph } from './CarriageMorph';
+import { Engine, Track } from './Engine';
 import { FilterChips, matchesQuery, NoMatches, SearchBar, type FilterOption } from './filters';
-import LogoGradient from './LogoGradient';
 import { LOGO } from './logoColors';
 import { getAppearance } from './theme';
 import { UnlockPrompt } from './UnlockPrompt';
@@ -171,89 +171,49 @@ function Locomotive({
         ? `${lot} parked · ${lot === 1 ? 'locked' : lot === 2 ? 'both locked' : 'all locked'}`
         : `${lotUnlocked} of ${lot} unlocked`;
   return (
-    <View style={{ paddingBottom: 12, marginTop: 12 }}>
-      {/* cab */}
-      <View
-        style={{
-          position: 'absolute',
-          top: -13,
-          right: 22,
-          width: 96,
-          height: 26,
-          borderTopLeftRadius: 13,
-          borderTopRightRadius: 13,
-          overflow: 'hidden',
-          flexDirection: 'row',
-          gap: 7,
-          paddingHorizontal: 13,
-          paddingTop: 6,
-          backgroundColor: LOGO.to,
-        }}
-      >
-        <LogoGradient />
-        <View style={{ flex: 1, height: 9, borderRadius: 3, backgroundColor: LOGO.gold }} />
-        <View style={{ flex: 1, height: 9, borderRadius: 3, backgroundColor: LOGO.gold }} />
-      </View>
-      <View
-        style={[
-          {
-            borderTopLeftRadius: 26,
-            borderTopRightRadius: 18,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 14,
-            overflow: 'hidden',
-            padding: 16,
-            gap: 12,
-            backgroundColor: LOGO.to,
-          },
-          shadow(0.25),
-        ]}
-      >
-        <LogoGradient />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.6, color: LOGO.gold }}>IN THE LOT</Text>
-            <Text style={{ fontSize: 21, fontWeight: '800', color: lotLocked ? '#FFFFFF' : '#FFD39A' }}>{headline}</Text>
+    <Engine>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <View style={{ flexShrink: 1 }}>
+          <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.6, color: LOGO.gold }}>IN THE LOT</Text>
+          <Text style={{ fontSize: 21, fontWeight: '800', color: lotLocked ? '#FFFFFF' : '#FFD39A' }}>{headline}</Text>
+        </View>
+        {lot > 0 && lotLocked ? (
+          // Everything parked is locked: just a small check (the headline already says so).
+          <View
+            accessible
+            accessibilityLabel="Cars in the lot are locked"
+            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="checkmark" size={20} color="#BFF0CF" />
           </View>
-          {lot > 0 && lotLocked ? (
-            // Everything parked is locked: just a small check (the headline already says so).
-            <View
-              accessible
-              accessibilityLabel="Cars in the lot are locked"
-              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name="checkmark" size={20} color="#BFF0CF" />
-            </View>
-          ) : lot > 0 ? (
-            <Bouncy
-              onPress={onLockLot}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel={`Lock the ${lotUnlocked} unlocked ${lotUnlocked === 1 ? 'car' : 'cars'} in the lot`}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                height: 42,
-                paddingHorizontal: 14,
-                borderRadius: isGlass() ? 999 : 12,
-                backgroundColor: LOGO.gold,
-              }}
-            >
-              {busy ? <ActivityIndicator color={LOGO.to} /> : <Ionicons name="lock-closed" size={16} color={LOGO.to} />}
-              <Text style={{ fontSize: 14, fontWeight: '800', color: LOGO.to }}>Lock lot cars</Text>
-            </Bouncy>
-          ) : null}
-        </View>
-        <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.18)' }} />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <LocoStat label="ON TRIP" value={onTrip ? `${onTrip}${backLabel ? ` · ${backLabel}` : ''}` : '0'} />
-          <LocoStat label="AWAY" value={away ? `${away} · no trip` : '0'} />
-          <LocoStat label="LEFT UNLOCKED" value={String(leftUnlocked)} warn={leftUnlocked > 0} />
-        </View>
+        ) : lot > 0 ? (
+          <Bouncy
+            onPress={onLockLot}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={`Lock the ${lotUnlocked} unlocked ${lotUnlocked === 1 ? 'car' : 'cars'} in the lot`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              height: 42,
+              paddingHorizontal: 14,
+              borderRadius: isGlass() ? 999 : 12,
+              backgroundColor: LOGO.gold,
+            }}
+          >
+            {busy ? <ActivityIndicator color={LOGO.to} /> : <Ionicons name="lock-closed" size={16} color={LOGO.to} />}
+            <Text style={{ fontSize: 14, fontWeight: '800', color: LOGO.to }}>Lock lot cars</Text>
+          </Bouncy>
+        ) : null}
       </View>
-      <Track />
-    </View>
+      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.18)' }} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <LocoStat label="ON TRIP" value={onTrip ? `${onTrip}${backLabel ? ` · ${backLabel}` : ''}` : '0'} />
+        <LocoStat label="AWAY" value={away ? `${away} · no trip` : '0'} />
+        <LocoStat label="LEFT UNLOCKED" value={String(leftUnlocked)} warn={leftUnlocked > 0} />
+      </View>
+    </Engine>
   );
 }
 
@@ -402,20 +362,6 @@ function LockButton({
     >
       {busy ? <ActivityIndicator color={fg} /> : <Ionicons name={unlocked ? 'lock-closed' : 'lock-open'} size={19} color={fg} />}
     </Pressable>
-  );
-}
-
-/** The short stretch of track each carriage sits on: a rail with crossties under it. */
-export function Track() {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', left: -6, right: -6, bottom: 0, height: 8 }}>
-      <View style={{ height: 2, borderRadius: 1, backgroundColor: colors.secondary }} />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 3, marginTop: 1 }}>
-        {Array.from({ length: 26 }).map((_, i) => (
-          <View key={i} style={{ width: 5, height: 5, borderRadius: 1, backgroundColor: colors.secondary, opacity: 0.35 }} />
-        ))}
-      </View>
-    </View>
   );
 }
 
