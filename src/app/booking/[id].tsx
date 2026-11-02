@@ -85,8 +85,9 @@ export default function BookingDetail() {
   const look = getAppearance();
   const band = look === 'light' ? theme.primary : null;
   const onBand = band ? '#FFFFFF' : colors.text;
-  // Ticket notches "cut" into the page behind the stub (not possible over see-through glass).
-  const notch = isGlass() ? null : colors.bg;
+  // Ticket notches: half-circle bites out of each side of the stub line. Over solid pages they take the
+  // page color; over frosted glass they're a darker/lighter tint so they still read as holes.
+  const notch = NOTCH[look]();
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string } | void>, okMsg: string) => {
     const r = await fn();
@@ -388,17 +389,22 @@ function Field({ label, value, style }: { label: string; value: string; style?: 
   );
 }
 
-/** Dashed tear line with round notches on both edges, like a ticket stub. */
-function Perforation({ notch }: { notch: string | null }) {
+const NOTCH: Record<ReturnType<typeof getAppearance>, () => { fill: string; edge: string }> = {
+  light: () => ({ fill: '#EAE4F4', edge: '#D6CDE9' }),
+  dark: () => ({ fill: '#12062E', edge: colors.border }),
+  glass: () => ({ fill: 'rgba(12,2,40,0.7)', edge: 'rgba(255,255,255,0.3)' }),
+  glassLight: () => ({ fill: 'rgba(90,60,170,0.26)', edge: 'rgba(255,255,255,0.95)' }),
+};
+const NOTCH_SIZE = 32;
+
+/** Dashed tear line with a round notch bitten out of each edge, like a ticket stub. */
+function Perforation({ notch }: { notch: { fill: string; edge: string } }) {
+  const circle = { position: 'absolute' as const, width: NOTCH_SIZE, height: NOTCH_SIZE, borderRadius: NOTCH_SIZE / 2, backgroundColor: notch.fill, borderWidth: 1.5, borderColor: notch.edge };
   return (
-    <View style={{ height: 22, justifyContent: 'center' }}>
-      {notch ? (
-        <>
-          <View style={{ position: 'absolute', left: -11, width: 22, height: 22, borderRadius: 11, backgroundColor: notch }} />
-          <View style={{ position: 'absolute', right: -11, width: 22, height: 22, borderRadius: 11, backgroundColor: notch }} />
-        </>
-      ) : null}
-      <View style={{ marginHorizontal: 18, borderTopWidth: 2, borderStyle: 'dashed', borderColor: colors.border }} />
+    <View style={{ height: NOTCH_SIZE, justifyContent: 'center' }}>
+      <View style={[circle, { left: -NOTCH_SIZE / 2 }]} />
+      <View style={[circle, { right: -NOTCH_SIZE / 2 }]} />
+      <View style={{ marginHorizontal: 22, borderTopWidth: 2, borderStyle: 'dashed', borderColor: colors.border }} />
     </View>
   );
 }
