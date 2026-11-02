@@ -12,7 +12,7 @@ const PREVIEW: Record<Appearance, Preview> = {
   dark: { label: 'Dark', sub: 'The logo’s purple', bg: theme.primaryDark, card: '#2A1856', line: '#3D2B70', text: '#F5EFE0', button: theme.accent },
   glassLight: {
     label: 'Glass Light',
-    sub: 'Frosted white & bubbly',
+    sub: 'Frosted white glass',
     bg: '#F1EAFF',
     card: 'rgba(255,255,255,0.6)',
     line: 'rgba(255,255,255,0.95)',
@@ -22,7 +22,7 @@ const PREVIEW: Record<Appearance, Preview> = {
   },
   glass: {
     label: 'Glass Dark',
-    sub: 'Frosted purple & bubbly',
+    sub: 'Frosted purple glass',
     bg: '#2C1270',
     card: 'rgba(255,255,255,0.14)',
     line: 'rgba(255,255,255,0.28)',

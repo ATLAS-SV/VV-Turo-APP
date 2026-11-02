@@ -15,7 +15,6 @@ type Rect = { x: number; y: number; w: number; h: number };
 export { prefersReducedMotion } from './bubble';
 export { useExpand } from './expandContext';
 
-const EXPAND_MS = 280;
 const FADE_MS = 200;
 
 export function ExpandProvider({ children }: { children: ReactNode }) {
@@ -38,10 +37,8 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
         fade.setValue(1);
         const glass = isGlass();
         setAnim({ rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? (isLightLook() ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)') : (opts.color ?? colors.card) });
-        // Glass: the box swells like a bubble (slight overshoot, then settles). Others: smooth ease.
-        const grow = glass
-          ? Animated.spring(progress, { toValue: 1, speed: 13, bounciness: 7, useNativeDriver: false, restDisplacementThreshold: 0.01 })
-          : Animated.timing(progress, { toValue: 1, duration: EXPAND_MS, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: false });
+        // The box swells like a bubble (slight overshoot, then settles), in every appearance.
+        const grow = Animated.spring(progress, { toValue: 1, speed: 13, bounciness: 7, useNativeDriver: false, restDisplacementThreshold: 0.01 });
         grow.start(() => {
           go(); // the page opens underneath the fully expanded surface…
           setTimeout(() => {
@@ -241,9 +238,7 @@ export function SlideOnChange({ value, children, distance = 36, style }: { value
     tx.setValue(dir * distance);
     op.setValue(0.2);
     Animated.parallel([
-      isGlass()
-        ? Animated.spring(tx, { toValue: 0, speed: 14, bounciness: 12, useNativeDriver: Platform.OS !== 'web' })
-        : Animated.timing(tx, { toValue: 0, duration: 260, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(tx, { toValue: 0, speed: 14, bounciness: 12, useNativeDriver: Platform.OS !== 'web' }), // springs in, every appearance
       Animated.timing(op, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [value, distance, tx, op]);

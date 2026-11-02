@@ -99,7 +99,7 @@ npx expo lint
 | Tab bar (5 per role, Overview in the middle). Executive: Cars & Bookings · Map · Overview · Money · More. Employee: Cars & Trips · Map · Overview · Hours · More. Activity log, Tasks and Hours (Executive) are in More | `src/app/(tabs)/_layout.tsx` |
 | All cars on one screen; one-tap lock, unlock always asks for the PIN | `src/ui/CarsList.tsx` |
 | Map tab: map on top as the main focus; a car picker (zooms to the car and shows where it is, lock state, last trip); scroll down for every car on the map. Trip history on each car's page | `src/app/(tabs)/map.tsx`, `src/app/car/[id].tsx` |
-| Appearance (More → Appearance): Light, Dark (the logo's purple), Glass Light (frosted white over a lavender-to-cream gradient) or Glass Dark (frosted purple); both glass looks have drifting bubbles, bouncy presses, pop-in boxes and springy transitions; per phone | `src/app/appearance.tsx`, `src/ui/theme.ts` |
+| Appearance (More → Appearance): Light, Dark (the logo's purple), Glass Light (frosted white over a lavender-to-cream gradient) or Glass Dark (frosted purple); per phone. Bubbly motion in every look: bouncy presses, pop-in boxes, springy expand and month slides (off with Reduce Motion) | `src/app/appearance.tsx`, `src/ui/theme.ts` |
 | Auto-lock: home lot only, parked & unlocked for the set time; notifies + logs | `src/logic/autoLock.ts`, `src/logic/automation.ts` |
 | Guest check-in: pickup window, in-lot check, countdown relock, "unlock again" retries, link expiry | `src/logic/guestCheckIn.ts`, `src/app/booking/[id].tsx` |
 | Late-return alert (optional) | `src/logic/autoLock.ts` |

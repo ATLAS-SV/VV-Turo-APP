@@ -1,5 +1,4 @@
-// Glass look + bubbly motion. Everything here only changes behavior when the Glass appearance is on;
-// Light and Dark keep their calmer styling.
+// Bubbly motion (every appearance) + the glass surface look (Glass Light / Glass Dark only).
 import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { getAppearance, isLightLook } from './theme';
@@ -43,37 +42,34 @@ export function glassFx(): ViewStyle {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/**
- * Pressable that squishes down and springs back like a bubble (Glass).
- * In Light/Dark it just dims a little while pressed, as before.
- */
+/** Pressable that squishes down and springs back like a bubble (all appearances; off with Reduce Motion). */
 export function Bouncy({ style, children, onPressIn, onPressOut, ...rest }: Omit<PressableProps, 'style' | 'children'> & { style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const [scale] = useState(() => new Animated.Value(1));
   const [pressed, setPressed] = useState(false);
-  const glass = isGlass() && !reduceMotion;
+  const bouncy = !reduceMotion;
   return (
     <AnimatedPressable
       {...rest}
       onPressIn={(e) => {
         setPressed(true);
-        if (glass) Animated.spring(scale, { toValue: 0.94, speed: 40, bounciness: 0, useNativeDriver: nativeDriver }).start();
+        if (bouncy) Animated.spring(scale, { toValue: 0.94, speed: 40, bounciness: 0, useNativeDriver: nativeDriver }).start();
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
         setPressed(false);
-        if (glass) Animated.spring(scale, { toValue: 1, speed: 12, bounciness: 16, useNativeDriver: nativeDriver }).start();
+        if (bouncy) Animated.spring(scale, { toValue: 1, speed: 12, bounciness: 16, useNativeDriver: nativeDriver }).start();
         onPressOut?.(e);
       }}
-      style={[style, glass ? { transform: [{ scale }] } : { opacity: pressed ? 0.85 : 1 }]}
+      style={[style, bouncy ? { transform: [{ scale }] } : { opacity: pressed ? 0.85 : 1 }]}
     >
       {children}
     </AnimatedPressable>
   );
 }
 
-/** Content that pops in like a bubble when it first appears (Glass). `delay` staggers a group. */
+/** Content that pops in like a bubble when it first appears (all appearances). `delay` staggers a group. */
 export function PopIn({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: StyleProp<ViewStyle> }) {
-  const [animate] = useState(() => isGlass() && !reduceMotion);
+  const [animate] = useState(() => !reduceMotion);
   const [v] = useState(() => new Animated.Value(animate ? 0 : 1));
   useEffect(() => {
     if (animate) Animated.spring(v, { toValue: 1, delay, speed: 8, bounciness: 13, useNativeDriver: nativeDriver }).start();
