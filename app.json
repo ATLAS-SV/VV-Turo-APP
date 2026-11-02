@@ -19,7 +19,12 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./public/icon-192.png",
+      "output": "single",
+      "name": "VV inc.",
+      "shortName": "VV inc.",
+      "themeColor": "#1E0E45",
+      "backgroundColor": "#1E0E45"
     },
     "plugins": [
       "expo-router",

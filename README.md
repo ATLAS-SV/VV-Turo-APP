@@ -7,6 +7,17 @@ guest check-in links, bookings, and employee hours.
 
 **Status: version 1 runs on pretend data.** Smartcar, Zubie and the Gmail booking reader are not connected yet.
 
+## Install on iPhone (home-screen web app, free)
+
+The app is hosted as a web app; no App Store, no fees, no expiry.
+
+1. Hosting (one time): sign up at vercel.com with GitHub → **Add New → Project** → import `ATLAS-SV/VV-Turo-APP`
+   → keep the detected settings (they come from `vercel.json`) → **Deploy**. Every push updates the site.
+2. On the iPhone, open the Vercel link in **Safari** → **Share** → **Add to Home Screen** → **Add**.
+3. Tap the **VV inc.** icon. It opens full screen like an app.
+
+Build it locally: `npx expo export --platform web` (output in `dist/`).
+
 ## Try it
 
 ```bash
