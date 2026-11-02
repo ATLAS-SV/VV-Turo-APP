@@ -1,10 +1,10 @@
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { lockedUntil, validatePinFormat } from '../logic/pin';
 import { DEMO_MODE, DEMO_PINS, useNow, useStore } from '../state/AppStore';
-import { colors, Screen } from '../ui/components';
 import { PinPad } from '../ui/PinPad';
-import { Logo } from '../ui/Brand';
+import { LogoScreen } from '../ui/Brand';
 
 /** App opens here. The PIN decides who you are and whether you're Executive or Employee. */
 export default function SignIn() {
@@ -18,25 +18,24 @@ export default function SignIn() {
   const secs = until ? Math.ceil((until.getTime() - now.getTime()) / 1000) : 0;
 
   return (
-    <Screen padTop scroll={false}>
-      <View style={styles.center}>
-        <Logo size={84} />
-        <Text style={[styles.sub, { marginTop: 18 }]}>Enter your PIN</Text>
-        {DEMO_MODE ? (
-          <Text style={styles.demo}>
-            Demo · Executive PIN {DEMO_PINS.executive} · Employee PIN {DEMO_PINS.employee}
-          </Text>
-        ) : null}
-        <PinPad
-          disabled={!!until}
-          error={until ? `Too many wrong PINs. Try again in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : error}
-          onSubmit={async (pin) => {
-            const r = await signIn(pin);
-            setError(r.ok ? null : r.error);
-          }}
-        />
-      </View>
-    </Screen>
+    <LogoScreen>
+      <StatusBar style="light" />
+      <Text style={styles.sub}>Enter your PIN</Text>
+      {DEMO_MODE ? (
+        <Text style={styles.demo}>
+          Demo · Executive PIN {DEMO_PINS.executive} · Employee PIN {DEMO_PINS.employee}
+        </Text>
+      ) : null}
+      <PinPad
+        variant="brand"
+        disabled={!!until}
+        error={until ? `Too many wrong PINs. Try again in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : error}
+        onSubmit={async (pin) => {
+          const r = await signIn(pin);
+          setError(r.ok ? null : r.error);
+        }}
+      />
+    </LogoScreen>
   );
 }
 
@@ -48,45 +47,42 @@ function FirstRunSetup() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <Screen padTop scroll={false}>
-      <View style={styles.center}>
-        <Logo size={84} />
-        <Text style={[styles.sub, { marginTop: 18 }]}>
-          {step === 'pin' ? 'Create your Executive PIN (4–8 digits)' : 'Enter the same PIN again'}
-        </Text>
-        <PinPad
-          key={step}
-          submitLabel={step === 'pin' ? 'Next' : 'Confirm'}
-          error={error}
-          onSubmit={async (p) => {
-            if (step === 'pin') {
-              const err = validatePinFormat(p);
-              if (err) return setError(err);
-              setPin(p);
-              setError(null);
-              setStep('confirm');
-              return;
-            }
-            if (p !== pin) {
-              setError('PINs didn’t match. Start again.');
-              setStep('pin');
-              return;
-            }
-            const r = await createFirstExecutive('Sebastian', p);
-            if (!r.ok) {
-              setError(r.error);
-              setStep('pin');
-            }
-          }}
-        />
-      </View>
-    </Screen>
+    <LogoScreen>
+      <StatusBar style="light" />
+      <Text style={styles.sub}>
+        {step === 'pin' ? 'Create your Executive PIN (4–8 digits)' : 'Enter the same PIN again'}
+      </Text>
+      <PinPad
+        variant="brand"
+        key={step}
+        submitLabel={step === 'pin' ? 'Next' : 'Confirm'}
+        error={error}
+        onSubmit={async (p) => {
+          if (step === 'pin') {
+            const err = validatePinFormat(p);
+            if (err) return setError(err);
+            setPin(p);
+            setError(null);
+            setStep('confirm');
+            return;
+          }
+          if (p !== pin) {
+            setError('PINs didn’t match. Start again.');
+            setStep('pin');
+            return;
+          }
+          const r = await createFirstExecutive('Sebastian', p);
+          if (!r.ok) {
+            setError(r.error);
+            setStep('pin');
+          }
+        }}
+      />
+    </LogoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  h1: { fontSize: 26, fontWeight: '800', color: colors.text },
-  sub: { color: colors.muted, fontSize: 16, marginBottom: 12, textAlign: 'center' },
-  demo: { color: colors.primary, backgroundColor: colors.neutralBg, fontSize: 13, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginTop: -6, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#E9DFC4', fontSize: 16, marginBottom: 6, textAlign: 'center', letterSpacing: 0.3 },
+  demo: { color: '#F7EED5', backgroundColor: 'rgba(212,175,55,0.16)', fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginBottom: 4, textAlign: 'center' },
 });

@@ -1,4 +1,6 @@
-import { Image, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Image, Platform, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from './theme';
 
 export const BRAND = {
@@ -50,6 +52,46 @@ export function BrandFooter() {
     <View style={{ alignItems: 'center', gap: 6, marginTop: 24, opacity: 0.8 }}>
       <LogoMark size={24} />
       <Text style={{ fontSize: 12, letterSpacing: 2, color: BRAND.dark, fontWeight: '600' }}>VALADON VENTURES</Text>
+    </View>
+  );
+}
+
+/** Serif matching the logo's "VV" lettering. */
+const LOGO_SERIF = Platform.select({ ios: 'Times New Roman', android: 'serif', default: '"Times New Roman", Times, serif' });
+
+/**
+ * The logo, expanded to the whole screen: deep purple field with the logo's thin gold frame
+ * running around the edge, and the gold VV monogram + company name at the top.
+ */
+export function LogoScreen({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  const short = useWindowDimensions().height < 740; // e.g. iPhone SE: scale the monogram down
+  return (
+    <View style={{ flex: 1, backgroundColor: BRAND.dark, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 12 }}>
+      <View
+        style={{
+          flex: 1,
+          borderWidth: 2,
+          borderColor: BRAND.accent,
+          borderRadius: 34,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: short ? 10 : 20,
+          gap: short ? 2 : 6,
+        }}
+      >
+        <Text
+          accessibilityRole="header"
+          accessibilityLabel="Valadon Ventures"
+          style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: short ? 56 : 84, lineHeight: short ? 62 : 92, color: BRAND.accent, letterSpacing: -2 }}
+        >
+          VV
+        </Text>
+        <Text style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: short ? 12 : 15, letterSpacing: short ? 4 : 5, color: BRAND.accent }}>VALADON VENTURES</Text>
+        <View style={{ width: 64, height: 1.5, backgroundColor: BRAND.accent, opacity: 0.7, marginTop: short ? 2 : 6, marginBottom: short ? 4 : 14 }} />
+        {children}
+      </View>
     </View>
   );
 }
