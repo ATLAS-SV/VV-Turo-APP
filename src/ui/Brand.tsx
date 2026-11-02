@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Image, Platform, Text, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { measure, useLogoTransition } from './logoTransitionContext';
+import { TunnelScene } from './TunnelScene';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAppearance, isLightLook, theme } from './theme';
 
@@ -191,7 +192,11 @@ export const LOGO_SERIF = Platform.select({ ios: 'Times New Roman', android: 'se
  */
 export function LogoScreen({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
-  const short = useWindowDimensions().height < 740; // e.g. iPhone SE: scale the monogram down
+  const win = useWindowDimensions();
+  const short = win.height < 740; // e.g. iPhone SE: scale the monogram down
+  // The little tunnel-and-car drawing fills the empty space at the top on taller phones.
+  const showScene = win.height >= 780;
+  const sceneW = Math.min(300, win.width - 72);
 
   // Tell the sign-in transition where the big logo pieces are, so it can shrink them from there.
   const { setSource } = useLogoTransition();
@@ -225,6 +230,11 @@ export function LogoScreen({ children }: { children: ReactNode }) {
           },
         ]}
       >
+        {showScene ? (
+          <View pointerEvents="none" style={{ position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center' }}>
+            <TunnelScene width={sceneW} color={look.mono} opacity={look.lightText ? 0.42 : 0.34} />
+          </View>
+        ) : null}
         <Text
           ref={vvRef}
           onLayout={report}
