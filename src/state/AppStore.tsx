@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { DEFAULT_SETTINGS, SEED_CARS, seedBookings } from '../data/seed';
+import { DEFAULT_SETTINGS, SEED_CARS, seedBookings, seedMoney } from '../data/seed';
 import { planAutomation } from '../logic/automation';
 import { evaluateCheckIn, REFUSAL_MESSAGES } from '../logic/guestCheckIn';
 import { canUnlockCar } from '../logic/permissions';
@@ -15,8 +15,10 @@ import type {
   Booking,
   Car,
   CarTelemetry,
+  EarningItem,
   HomePage,
   LatLng,
+  Payout,
   Role,
   Settings,
   Shift,
@@ -37,6 +39,9 @@ interface Persisted {
   shifts: Shift[];
   pinLockout: PinLockout;
   lateAlertsSent: string[];
+  /** Money lines that aren't a booking's trip earnings (incentives, claims, reimbursements, past trips). */
+  earningExtras: EarningItem[];
+  payouts: Payout[];
   mockTelemetry: CarTelemetry[] | null;
   mockTrips: Trip[] | null;
 }
@@ -75,7 +80,10 @@ async function findUserByPin(users: User[], pin: string): Promise<User | undefin
 }
 
 function initialPersisted(): Persisted {
+  const money = seedMoney(Date.now());
   return {
+    earningExtras: money.extras,
+    payouts: money.payouts,
     users: [],
     settings: DEFAULT_SETTINGS,
     cars: SEED_CARS,
@@ -136,6 +144,8 @@ function useAppStoreValue() {
       shifts: state.shifts,
       pinLockout: state.pinLockout,
       lateAlertsSent: state.lateAlertsSent,
+      earningExtras: state.earningExtras,
+      payouts: state.payouts,
       mockTelemetry: fleet.telemetry,
       mockTrips: fleet.trips,
     };
@@ -567,7 +577,7 @@ function useAppStoreValue() {
     if (!requireExec()) return;
     const fresh = initialPersisted();
     mockFleet.load(null, null);
-    update((s) => ({ ...s, bookings: fresh.bookings, cars: fresh.cars, activity: [], lateAlertsSent: [], toasts: [] }));
+    update((s) => ({ ...s, bookings: fresh.bookings, cars: fresh.cars, earningExtras: fresh.earningExtras, payouts: fresh.payouts, activity: [], lateAlertsSent: [], toasts: [] }));
     runAutomation();
   }, [update, runAutomation]);
 

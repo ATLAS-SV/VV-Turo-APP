@@ -8,6 +8,7 @@ const HOME_PAGES: { key: HomePage; label: string }[] = [
   { key: 'cars', label: 'Cars' },
   { key: 'map', label: 'Map' },
   { key: 'bookings', label: 'Bookings' },
+  { key: 'money', label: 'Money' },
   { key: 'hours', label: 'Hours' },
 ];
 
@@ -43,7 +44,7 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
       </Row>
       <Muted>Their PIN opens to</Muted>
       <Row style={{ flexWrap: 'wrap', gap: 6 }}>
-        {HOME_PAGES.map((p) => (
+        {HOME_PAGES.filter((p) => p.key !== 'money' || user.role === 'executive').map((p) => (
           <Button
             key={p.key}
             label={p.label}

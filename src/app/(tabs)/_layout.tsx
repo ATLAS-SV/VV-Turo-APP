@@ -14,12 +14,13 @@ function icon(name: IconName) {
   return TabIcon;
 }
 
-const HOME_HREF = { cars: '/', map: '/map', bookings: '/bookings', hours: '/hours' } as const;
+const HOME_HREF = { cars: '/', map: '/map', bookings: '/bookings', money: '/money', hours: '/hours' } as const;
 
 export default function TabsLayout() {
   const { currentUser } = useStore();
   const isExec = currentUser?.role === 'executive';
-  const home: HomePage = currentUser ? (currentUser.homePage ?? defaultHomePage(currentUser.role)) : 'cars';
+  let home: HomePage = currentUser ? (currentUser.homePage ?? defaultHomePage(currentUser.role)) : 'cars';
+  if (home === 'money' && !isExec) home = 'hours'; // Money is Executive-only
 
   // This layout mounts fresh each time someone enters their PIN: open their designated page.
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Cars', tabBarIcon: icon('car-sport') }} />
       <Tabs.Screen name="map" options={{ title: 'Map', tabBarIcon: icon('map') }} />
       <Tabs.Screen name="bookings" options={{ title: isExec ? 'Bookings' : 'Trips', tabBarIcon: icon('calendar') }} />
+      <Tabs.Screen name="money" options={{ title: 'Money', tabBarIcon: icon('cash'), href: isExec ? undefined : null }} />
       <Tabs.Screen name="hours" options={{ title: 'Hours', tabBarIcon: icon('time') }} />
       <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: icon('ellipsis-horizontal-circle') }} />
     </Tabs>

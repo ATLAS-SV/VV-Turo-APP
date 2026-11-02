@@ -184,3 +184,28 @@ describe('check-in message', () => {
     expect(m).not.toMatch(/\{\w+\}/);
   });
 });
+
+describe('money', () => {
+  it('splits a month into earned vs upcoming by type, and sums payouts', async () => {
+    const { earningItems, summarizeMonth, monthWhen, addMonths } = await import('./money');
+    const now = new Date(2026, 10, 15, 12); // Nov 15 2026 local
+    const at = (d: number) => new Date(2026, 10, d, 12).toISOString();
+    const items = earningItems(
+      [booking({ id: 'x', tripEnd: at(10), earnings: 300 }), booking({ id: 'y', tripEnd: at(25), earnings: 200 }), booking({ id: 'z', tripEnd: at(5), earnings: 999, canceled: true })],
+      [
+        { id: 'i', type: 'incentive', amount: 50, date: at(3), description: 'Bonus', source: 'pretend' },
+        { id: 'c', type: 'claim', amount: 650, date: new Date(2026, 9, 3).toISOString(), description: 'Oct claim', source: 'pretend' },
+      ],
+    );
+    const s = summarizeMonth(items, [{ id: 'p', sentAt: at(12), amount: 340, method: 'Bank', source: 'pretend' }], '2026-11', now);
+    expect(s.earned).toBe(350);
+    expect(s.upcoming).toBe(200);
+    expect(s.byType.trip).toEqual({ earned: 300, upcoming: 200 });
+    expect(s.byType.claim.earned).toBe(0);
+    expect(s.tripCount).toBe(2);
+    expect(s.paidOut).toBe(340);
+    expect(monthWhen('2026-10', now)).toBe('past');
+    expect(monthWhen('2026-12', now)).toBe('future');
+    expect(addMonths('2026-12', 1)).toBe('2027-01');
+  });
+});

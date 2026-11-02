@@ -186,7 +186,7 @@ export function fmtAgo(iso: string | null | undefined, now: Date) {
 }
 
 export function fmtMoney(n: number) {
-  return `$${n.toFixed(2)}`;
+  return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const s = StyleSheet.create({

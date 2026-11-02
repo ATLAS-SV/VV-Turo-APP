@@ -15,7 +15,7 @@ export interface User {
   createdAt: string;
 }
 
-export type HomePage = 'cars' | 'map' | 'bookings' | 'hours';
+export type HomePage = 'cars' | 'map' | 'bookings' | 'money' | 'hours';
 
 export function defaultHomePage(role: Role): HomePage {
   return role === 'executive' ? 'cars' : 'hours';
@@ -103,6 +103,30 @@ export interface Booking {
     unlockCount: number;
     lastUnlockAt: string | null;
   };
+}
+
+export type EarningType = 'trip' | 'incentive' | 'reimbursement' | 'claim';
+
+/** A money line, like a row on Turo's earnings page. */
+export interface EarningItem {
+  id: string;
+  type: EarningType;
+  amount: number;
+  /** When it counts: trip end date for trip earnings. */
+  date: string;
+  carId?: string;
+  reservationId?: string;
+  description: string;
+  source: 'booking' | 'turo_email' | 'pretend';
+}
+
+/** A payment Turo sent to the bank (from Turo's payout emails). */
+export interface Payout {
+  id: string;
+  sentAt: string;
+  amount: number;
+  method: string;
+  source: 'turo_email' | 'pretend';
 }
 
 export type ActivityAction =

@@ -1,6 +1,6 @@
 // Pretend data used until Smartcar, Zubie and the Gmail booking reader are connected.
 import { DEFAULT_CHECK_IN_TEMPLATE } from '../logic/checkInMessage';
-import type { Booking, Car, CarTelemetry, Settings, Trip } from '../logic/types';
+import type { Booking, Car, CarTelemetry, EarningItem, EarningType, Payout, Settings, Trip } from '../logic/types';
 
 const MIN = 60_000;
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -116,4 +116,57 @@ export function seedBookings(now: number): Booking[] {
     { ...base, id: 'b4', reservationId: '48240388', carId: 'tx', guestFirstName: 'James', guestPhone: '(562) 555-0110', tripStart: iso(now + 2 * 24 * h), tripEnd: iso(now + 5 * 24 * h), earnings: 655.0, checkInToken: token() },
     { ...base, id: 'b5', reservationId: '48251174', carId: 'rogue', guestFirstName: 'Alex', tripStart: iso(now + 4 * 24 * h), tripEnd: iso(now + 6 * 24 * h), earnings: 201.4, checkInToken: token(), canceled: true, checkIn: { state: 'expired', unlockCount: 0, lastUnlockAt: null } },
   ];
+}
+
+// ---------- pretend money history (until Turo payout/earnings emails are read) ----------
+
+/** Small deterministic random generator so pretend numbers don't change between launches. */
+function rng(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+export function seedMoney(now: number): { extras: EarningItem[]; payouts: Payout[] } {
+  const rand = rng(42);
+  const day = 24 * 60 * MIN;
+  const extras: EarningItem[] = [];
+  const carIds = SEED_CARS.map((c) => c.id);
+  const today = new Date(now);
+  const startOfMonth = (offset: number) => new Date(today.getFullYear(), today.getMonth() + offset, 1).getTime();
+  let n = 0;
+  const add = (type: EarningType, amount: number, date: number, description: string, carId?: string) =>
+    extras.push({ id: `p${n++}`, type, amount: Math.round(amount * 100) / 100, date: iso(date), carId, description, source: 'pretend' });
+
+  // Past 6 months of trips (current month only up to a few days ago), plus next 2 months already booked.
+  for (let m = -6; m <= 2; m++) {
+    const from = startOfMonth(m);
+    const to = startOfMonth(m + 1);
+    for (const carId of carIds) {
+      const trips = m > 0 ? 1 + Math.floor(rand() * 2) : 3 + Math.floor(rand() * 3);
+      for (let t = 0; t < trips; t++) {
+        const date = from + rand() * (to - from);
+        if (m === 0 && date > now - 3 * day && date < now + 3 * day) continue; // real bookings cover this week
+        add('trip', 90 + rand() * 380, date, 'Trip', carId);
+        if (rand() < 0.35 && date < now) add('reimbursement', 12 + rand() * 55, date + day, rand() < 0.5 ? 'Tolls' : 'Fuel', carId);
+      }
+    }
+    if (m <= 0 && rand() < 0.7) add('incentive', [25, 50, 75][Math.floor(rand() * 3)], from + 20 * day, 'Host bonus');
+  }
+  add('claim', 650, startOfMonth(-2) + 12 * day, 'Damage claim: rear bumper', 'bmw3');
+  add('claim', 180, startOfMonth(-4) + 6 * day, 'Cleaning / smoking claim', 'rogue');
+
+  // Turo pays out a few days after earnings: one payout each Friday for the previous week's items.
+  const payouts: Payout[] = [];
+  const earned = extras.filter((e) => Date.parse(e.date) < now).sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+  let i = 0;
+  for (let t = startOfMonth(-6); t < now; t += day) {
+    if (new Date(t).getDay() !== 5) continue;
+    let sum = 0;
+    while (i < earned.length && Date.parse(earned[i].date) < t - 3 * day) sum += earned[i++].amount;
+    if (sum > 0) payouts.push({ id: `pay${t}`, sentAt: iso(t + 10 * 60 * MIN), amount: Math.round(sum * 100) / 100, method: 'Bank transfer', source: 'pretend' });
+  }
+  return { extras, payouts };
 }

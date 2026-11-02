@@ -18,7 +18,7 @@ Scan the QR code with the **Expo Go** app on your phone. The app always opens to
 on the very first launch it asks you to create the Executive PIN. Press `w` to open a browser preview instead (the map is simplified in the browser).
 
 ```bash
-npm test          # rules: auto-lock, guest check-in, PIN lockout, roles, hours
+npm test          # rules: auto-lock, guest check-in, PIN lockout, roles, hours, money
 npm run typecheck
 npx expo lint
 ```
@@ -35,6 +35,7 @@ npx expo lint
 | Late-return alert (optional) | `src/logic/autoLock.ts` |
 | Send the check-in link in Turo: copies the ready-made message (editable in Settings) and opens Turo; "I sent it" logs it | `src/app/booking/[id].tsx`, `src/logic/checkInMessage.ts` |
 | Bookings (employees see trip times only, no money or guest details) | `src/app/(tabs)/bookings.tsx` |
+| Money tab (Executive only): month switcher; past months show total earned, future months show upcoming; stacked chart by type (trip earnings, incentives, reimbursements, claims); breakdown by type and by car; Turo payouts | `src/app/(tabs)/money.tsx`, `src/logic/money.ts`, `src/ui/EarningsChart.tsx` |
 | Clock in/out; Executive sees everyone's hours | `src/app/(tabs)/hours.tsx` |
 | Activity log (person, guest link, auto-lock, system) | `src/app/activity.tsx` |
 | Executive settings: every number is adjustable | `src/app/settings.tsx` |
@@ -67,7 +68,7 @@ Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend
 2. **Smartcar**: connect each car; confirm all four models are supported.
 3. **Zubie**: confirm ZinC API access is in the plan; use its live location and parked/moving status.
 4. **Guest check-in web page** at a real address (replaces the `checkin.example.com` placeholder).
-5. **Gmail reader** for Turo booking, change and cancellation emails, to fill in bookings.
+5. **Gmail reader** for Turo emails: bookings, changes, cancellations, payouts ("payment sent"), incentives and claims, to fill in bookings and the Money tab.
 6. **Real home-lot outline.** The current one is a placeholder rectangle near LAX.
 
 ## Open questions (from the planning doc)
