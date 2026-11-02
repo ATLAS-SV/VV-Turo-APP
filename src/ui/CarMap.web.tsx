@@ -1,6 +1,8 @@
 // Web (home-screen app) map: OpenStreetMap via Leaflet. The native build uses CarMap.tsx (react-native-maps).
 import 'leaflet/dist/leaflet.css';
-import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip } from 'react-leaflet';
+import { useEffect } from 'react';
+import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import type { LatLng } from '../logic/types';
 import { polygonCenter } from '../logic/geo';
 import { carName, useStore } from '../state/AppStore';
 import { colors } from './components';
@@ -17,6 +19,7 @@ export default function CarMap({ selectedCarId, onSelectCar }: CarMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           maxZoom={19}
         />
+        <Focus points={cars.map((c) => telemetry[c.id]?.position).filter((p): p is LatLng => !!p)} selected={selectedCarId ? telemetry[selectedCarId]?.position ?? null : null} />
         <Polygon
           positions={settings.homeLot.polygon.map((p) => [p.latitude, p.longitude] as [number, number])}
           pathOptions={{ color: colors.primary, weight: 2, fillOpacity: 0.15 }}
@@ -43,4 +46,16 @@ export default function CarMap({ selectedCarId, onSelectCar }: CarMapProps) {
       </MapContainer>
     </div>
   );
+}
+
+/** Zoom to the selected car; with none selected, fit every car (and the home lot) on screen. */
+function Focus({ points, selected }: { points: LatLng[]; selected: LatLng | null }) {
+  const map = useMap();
+  const key = selected ? `${selected.latitude},${selected.longitude}` : points.map((p) => `${p.latitude},${p.longitude}`).join('|');
+  useEffect(() => {
+    if (selected) map.flyTo([selected.latitude, selected.longitude], 15, { duration: 0.6 });
+    else if (points.length) map.flyToBounds(points.map((p) => [p.latitude, p.longitude] as [number, number]), { padding: [36, 36], maxZoom: 14, duration: 0.6 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map]);
+  return null;
 }

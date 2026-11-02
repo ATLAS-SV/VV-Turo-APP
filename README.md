@@ -98,7 +98,8 @@ npx expo lint
 | Motion: swipe left/right on any tab page to move to the next tab (it slides in from that side; off on the Map, which needs dragging); tapping a box or card grows it into the page it opens | `src/ui/motion.tsx` |
 | Tab bar (5 per role, Overview in the middle). Executive: Cars & Bookings · Map · Overview · Money · More. Employee: Cars & Trips · Map · Overview · Hours · More. Activity log, Tasks and Hours (Executive) are in More | `src/app/(tabs)/_layout.tsx` |
 | All cars on one screen; one-tap lock, unlock always asks for the PIN | `src/ui/CarsList.tsx` |
-| Map + trip history (left/back times, distance, stops) | `src/app/(tabs)/map.tsx`, `src/app/car/[id].tsx` |
+| Map tab: map on top as the main focus; a car picker (zooms to the car and shows where it is, lock state, last trip); scroll down for every car on the map. Trip history on each car's page | `src/app/(tabs)/map.tsx`, `src/app/car/[id].tsx` |
+| Appearance (More → Appearance): light, or dark with the logo's purple; per phone | `src/app/appearance.tsx`, `src/ui/theme.ts` |
 | Auto-lock: home lot only, parked & unlocked for the set time; notifies + logs | `src/logic/autoLock.ts`, `src/logic/automation.ts` |
 | Guest check-in: pickup window, in-lot check, countdown relock, "unlock again" retries, link expiry | `src/logic/guestCheckIn.ts`, `src/app/booking/[id].tsx` |
 | Late-return alert (optional) | `src/logic/autoLock.ts` |
