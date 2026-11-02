@@ -172,3 +172,15 @@ describe('hours', () => {
     expect(minutesInRange(shifts, new Date(minAgo(90)), NOW, NOW)).toBe(60);
   });
 });
+
+describe('check-in message', () => {
+  it('fills in guest, car, link, window and countdown', async () => {
+    const { buildCheckInMessage, DEFAULT_CHECK_IN_TEMPLATE } = await import('./checkInMessage');
+    const m = buildCheckInMessage(DEFAULT_CHECK_IN_TEMPLATE, { guest: 'Maria', car: '2026 Genesis GV70', link: 'https://x/c/abc', window: '2 PM to 4 PM', countdown: 10 });
+    expect(m).toContain('Hi Maria!');
+    expect(m).toContain('https://x/c/abc');
+    expect(m).toContain('within 10 minutes');
+    expect(m).toContain('Valadon Ventures');
+    expect(m).not.toMatch(/\{\w+\}/);
+  });
+});

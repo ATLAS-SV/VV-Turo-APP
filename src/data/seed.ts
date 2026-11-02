@@ -1,4 +1,5 @@
 // Pretend data used until Smartcar, Zubie and the Gmail booking reader are connected.
+import { DEFAULT_CHECK_IN_TEMPLATE } from '../logic/checkInMessage';
 import type { Booking, Car, CarTelemetry, Settings, Trip } from '../logic/types';
 
 const MIN = 60_000;
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lateReturnAlertMinutes: 60,
   employeeUnlockScope: 'all',
   appRelockMinutes: 5,
+  checkInMessageTemplate: DEFAULT_CHECK_IN_TEMPLATE,
   homeLot: PLACEHOLDER_HOME_LOT,
 };
 

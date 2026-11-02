@@ -13,6 +13,7 @@ const ICONS: Record<ActivityAction, IconName> = {
   guest_relock: 'timer',
   guest_failed: 'alert-circle',
   trip_started: 'navigate',
+  link_sent: 'paper-plane',
   late_return: 'warning',
   clock_in: 'play-circle',
   clock_out: 'stop-circle',

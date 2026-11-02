@@ -15,6 +15,7 @@ import type {
   Booking,
   Car,
   CarTelemetry,
+  HomePage,
   LatLng,
   Role,
   Settings,
@@ -482,6 +483,14 @@ function useAppStoreValue() {
     [update],
   );
 
+  const setHomePage = useCallback(
+    (userId: string, homePage: HomePage) => {
+      if (!requireExec()) return;
+      update((s) => ({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, homePage } : u)) }));
+    },
+    [update],
+  );
+
   const saveCar = useCallback(
     (car: Car) => {
       if (!requireExec()) return;
@@ -523,6 +532,19 @@ function useAppStoreValue() {
       return { ok: true };
     },
     [refreshTelemetry, log, patchBooking],
+  );
+
+  /** Record that the check-in message was sent to the guest in Turo. */
+  const markLinkSent = useCallback(
+    (bookingId: string) => {
+      const s = ref.current;
+      const user = s.users.find((u) => u.id === s.currentUserId);
+      const b = s.bookings.find((x) => x.id === bookingId);
+      if (!user || !b) return;
+      patchBooking(bookingId, (x) => ({ ...x, linkSentAt: new Date().toISOString() }));
+      log('link_sent', actorFor(user), { carId: b.carId, detail: `To ${b.guestFirstName} via Turo messages` });
+    },
+    [patchBooking, log],
   );
 
   const simulateDriveOff = useCallback(
@@ -568,8 +590,10 @@ function useAppStoreValue() {
     changePin,
     removeUser,
     setAssignedCars,
+    setHomePage,
     saveCar,
     getTrips: (carId: string) => tracker.getTrips(carId),
+    markLinkSent,
     simulateGuestArrival,
     simulateDriveOff,
     simulateReturn,
@@ -616,6 +640,7 @@ export const ACTION_LABELS: Record<ActivityAction, string> = {
   guest_relock: 'Guest countdown relocked',
   guest_failed: 'Guest check-in failed',
   trip_started: 'Trip started',
+  link_sent: 'Check-in link sent in Turo',
   late_return: 'Late return',
   clock_in: 'Clocked in',
   clock_out: 'Clocked out',

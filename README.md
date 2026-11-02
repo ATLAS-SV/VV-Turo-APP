@@ -1,6 +1,7 @@
-# Fleet Control — Turo business app
+# VV inc. — Valadon Ventures fleet app
 
-Phone app (iPhone + Android, built with Expo / React Native) for running the Turo fleet:
+Phone app (iPhone + Android, built with Expo / React Native) for running the Valadon Ventures Turo fleet.
+Shows as **VV inc.** on the phone, with the Valadon Ventures logo in the app. It can
 lock/unlock every car from one screen, see where every car is, auto-lock in the home lot,
 guest check-in links, bookings, and employee hours.
 
@@ -13,8 +14,8 @@ npm install
 npx expo start
 ```
 
-Scan the QR code with the **Expo Go** app on your phone. The first launch asks you to set up the
-Executive PIN. Press `w` to open a browser preview instead (the map is simplified in the browser).
+Scan the QR code with the **Expo Go** app on your phone. The app always opens to the PIN pad;
+on the very first launch it asks you to create the Executive PIN. Press `w` to open a browser preview instead (the map is simplified in the browser).
 
 ```bash
 npm test          # rules: auto-lock, guest check-in, PIN lockout, roles, hours
@@ -26,12 +27,13 @@ npx expo lint
 
 | Area | Where |
 | --- | --- |
-| PIN sign-in: the PIN decides the person and the role; app locks after 5 wrong tries (5 min, then 10, 20…) | `src/app/sign-in.tsx`, `src/logic/pin.ts` |
+| PIN pad is the first screen; the PIN decides the person, the role, and which page opens (set per person in Team & PINs); app locks after 5 wrong tries (5 min, then 10, 20…) | `src/app/sign-in.tsx`, `src/logic/pin.ts` |
 | All cars on one screen; one-tap lock, unlock always asks for the PIN | `src/app/(tabs)/index.tsx` |
 | Map + trip history (left/back times, distance, stops) | `src/app/(tabs)/map.tsx`, `src/app/car/[id].tsx` |
 | Auto-lock: home lot only, parked & unlocked for the set time; notifies + logs | `src/logic/autoLock.ts`, `src/logic/automation.ts` |
 | Guest check-in: pickup window, in-lot check, countdown relock, "unlock again" retries, link expiry | `src/logic/guestCheckIn.ts`, `src/app/booking/[id].tsx` |
 | Late-return alert (optional) | `src/logic/autoLock.ts` |
+| Send the check-in link in Turo: copies the ready-made message (editable in Settings) and opens Turo; "I sent it" logs it | `src/app/booking/[id].tsx`, `src/logic/checkInMessage.ts` |
 | Bookings (employees see trip times only, no money or guest details) | `src/app/(tabs)/bookings.tsx` |
 | Clock in/out; Executive sees everyone's hours | `src/app/(tabs)/hours.tsx` |
 | Activity log (person, guest link, auto-lock, system) | `src/app/activity.tsx` |
@@ -41,6 +43,12 @@ npx expo lint
 
 The rules in `src/logic/` are plain TypeScript with no phone code, so they can move to a server unchanged.
 Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend version is `src/services/mockFleet.ts`.
+
+## Branding
+
+- Theme: **Royal Gold**: midnight royal purple `#3B1F7A`, dark `#1E0E45`, violet `#7A62B8`, gold `#D4AF37`.
+  All colors live in `src/ui/theme.ts`; three other options are kept there for reference.
+- Logo/app icons are generated from the theme: `python3 scripts/make-logo.py` (needs Python + Pillow).
 
 ## Testing with pretend data
 
@@ -67,5 +75,4 @@ Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend
 - BMW 3 Series and Nissan Rogue years (editable under More → Cars); any other cars?
 - Smartcar support for each car
 - Home lot exact address
-- Send the check-in link via Turo message or text?
 - Should the helper unlock all cars or only assigned ones? (Built as a setting; defaults to all.)

@@ -16,7 +16,7 @@ export default function CarMap({ selectedCarId, onSelectCar }: CarMapProps) {
       <Polygon
         coordinates={settings.homeLot.polygon}
         strokeColor={colors.primary}
-        fillColor="rgba(29,78,216,0.15)"
+        fillColor={colors.primary + "26"}
         strokeWidth={2}
       />
       {cars.map((car) => {

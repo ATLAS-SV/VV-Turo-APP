@@ -16,7 +16,7 @@ export default function CarMap({ selectedCarId, onSelectCar }: CarMapProps) {
   });
   return (
     <View style={{ flex: 1, backgroundColor: '#E8EEF4' }}>
-      <View style={{ position: 'absolute', left: '46%', top: '46%', width: '8%', height: '8%', borderWidth: 2, borderColor: colors.primary, backgroundColor: 'rgba(29,78,216,0.12)', borderRadius: 4 }} />
+      <View style={{ position: 'absolute', left: '46%', top: '46%', width: '8%', height: '8%', borderWidth: 2, borderColor: colors.primary, backgroundColor: colors.primary + '1F', borderRadius: 4 }} />
       <Text style={{ position: 'absolute', left: '44%', top: '55%', color: colors.primary, fontSize: 12, fontWeight: '600' }}>{settings.homeLot.name}</Text>
       {cars.map((car, i) => {
         const t = telemetry[car.id];

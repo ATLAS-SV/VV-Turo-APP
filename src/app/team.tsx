@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Switch, Text, TextInput } from 'react-native';
-import type { Role, User } from '../logic/types';
+import { defaultHomePage, type HomePage, type Role, type User } from '../logic/types';
 import { carName, useStore } from '../state/AppStore';
 import { Button, Card, Chip, colors, Muted, Row, Screen, SectionTitle, Title } from '../ui/components';
+
+const HOME_PAGES: { key: HomePage; label: string }[] = [
+  { key: 'cars', label: 'Cars' },
+  { key: 'map', label: 'Map' },
+  { key: 'bookings', label: 'Bookings' },
+  { key: 'hours', label: 'Hours' },
+];
 
 /** Executives add/remove people and set their personal PINs. */
 export default function TeamScreen() {
   const { users, currentUser, settings } = useStore();
   return (
     <Screen>
-      <Muted>Everyone gets their own PIN, so hours and unlocks are tied to a person. PINs must be unique.</Muted>
+      <Muted>Everyone gets their own PIN, so hours and unlocks are tied to a person. PINs must be unique. Each PIN opens the app to that person’s page.</Muted>
       {users.map((u) => (
         <PersonCard key={u.id} user={u} isMe={u.id === currentUser?.id} showCars={settings.employeeUnlockScope === 'assigned'} />
       ))}
@@ -20,7 +27,7 @@ export default function TeamScreen() {
 }
 
 function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showCars: boolean }) {
-  const { changePin, removeUser, cars, setAssignedCars } = useStore();
+  const { changePin, removeUser, cars, setAssignedCars, setHomePage } = useStore();
   const [newPin, setNewPin] = useState('');
   const [editing, setEditing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -33,6 +40,18 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
           {isMe ? ' (you)' : ''}
         </Title>
         <Chip label={user.role === 'executive' ? 'Executive' : 'Employee'} tone={user.role === 'executive' ? 'info' : 'neutral'} />
+      </Row>
+      <Muted>Their PIN opens to</Muted>
+      <Row style={{ flexWrap: 'wrap', gap: 6 }}>
+        {HOME_PAGES.map((p) => (
+          <Button
+            key={p.key}
+            label={p.label}
+            variant={(user.homePage ?? defaultHomePage(user.role)) === p.key ? 'primary' : 'secondary'}
+            onPress={() => setHomePage(user.id, p.key)}
+            style={{ paddingVertical: 6, paddingHorizontal: 12, minHeight: 34 }}
+          />
+        ))}
       </Row>
       {showCars && user.role === 'employee' ? (
         <>

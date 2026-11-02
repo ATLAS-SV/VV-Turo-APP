@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { DEFAULT_SETTINGS } from '../data/seed';
+import { DEFAULT_CHECK_IN_TEMPLATE } from '../logic/checkInMessage';
 import type { Settings } from '../logic/types';
 import { useStore } from '../state/AppStore';
 import { Button, Card, colors, Muted, Row, Screen, SectionTitle } from '../ui/components';
@@ -41,6 +42,9 @@ export default function SettingsScreen() {
         {num('pickupWindowAfterMinutes', 'Pickup window closes', 'Minutes after trip start.', 'min after', 15, 720, 15)}
         {num('guestUnlockRetries', '“Unlock again” retries', 'After these, the guest has to contact you.', 'retries', 0, 10)}
       </Card>
+
+      <SectionTitle>Check-in message (sent in Turo)</SectionTitle>
+      <MessageTemplateEditor />
 
       <SectionTitle>Alerts</SectionTitle>
       <Card>
@@ -85,10 +89,27 @@ export default function SettingsScreen() {
 
       <SectionTitle>Pretend data</SectionTitle>
       <Card>
-        <Button variant="secondary" label="Restore default settings" onPress={() => updateSettings({ ...DEFAULT_SETTINGS, homeLot: settings.homeLot }, 'Restored default settings')} />
+        <Button variant="secondary" label="Restore default settings" onPress={() => updateSettings({ ...DEFAULT_SETTINGS, homeLot: settings.homeLot, checkInMessageTemplate: settings.checkInMessageTemplate }, 'Restored default settings')} />
         <Button variant="danger" label="Reset pretend cars, bookings & activity" onPress={resetDemoData} />
       </Card>
     </Screen>
+  );
+}
+
+function MessageTemplateEditor() {
+  const { settings, updateSettings } = useStore();
+  const [text, setText] = useState(settings.checkInMessageTemplate);
+  const dirty = text !== settings.checkInMessageTemplate;
+  return (
+    <Card>
+      <Muted>Fill-ins: {'{guest}'} {'{car}'} {'{link}'} {'{window}'} {'{countdown}'}</Muted>
+      <TextInput value={text} onChangeText={setText} multiline style={[inputStyle, { minHeight: 160, textAlignVertical: 'top' }]} />
+      {!text.includes('{link}') ? <Muted style={{ color: colors.danger }}>The message needs {'{link}'} so the guest gets their link.</Muted> : null}
+      <Row>
+        <Button style={{ flex: 1 }} variant="secondary" label="Default" onPress={() => setText(DEFAULT_CHECK_IN_TEMPLATE)} />
+        <Button style={{ flex: 1 }} label="Save" disabled={!dirty || !text.includes('{link}')} onPress={() => updateSettings({ checkInMessageTemplate: text }, 'Check-in message updated')} />
+      </Row>
+    </Card>
   );
 }
 

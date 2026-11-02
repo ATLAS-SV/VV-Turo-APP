@@ -57,7 +57,14 @@ function BookingCard({ b, showMoney, showGuest, carLabel }: { b: Booking; showMo
       <Muted>
         {fmtTime(b.tripStart)} → {fmtTime(b.tripEnd)}
       </Muted>
-      {showGuest && !b.canceled ? <Chip label={ci.label} tone={ci.tone} /> : null}
+      {showGuest && !b.canceled ? (
+        <Row style={{ flexWrap: 'wrap' }}>
+          <Chip label={ci.label} tone={ci.tone} />
+          {b.checkIn.state === 'waiting' ? (
+            b.linkSentAt ? <Chip label="Sent in Turo" tone="good" icon="paper-plane" /> : <Chip label="Not sent yet" tone="warn" icon="paper-plane" />
+          ) : null}
+        </Row>
+      ) : null}
     </Card>
   );
 }

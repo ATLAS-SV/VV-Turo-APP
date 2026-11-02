@@ -5,13 +5,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LockState } from '../logic/types';
 import { useStore } from '../state/AppStore';
 
+import { theme } from './theme';
+
 export const colors = {
-  bg: '#F4F5F7',
+  bg: theme.background,
   card: '#FFFFFF',
   text: '#14171F',
   muted: '#646B78',
   border: '#E3E5EA',
-  primary: '#1D4ED8',
+  primary: theme.primary,
+  primaryDark: theme.primaryDark,
+  secondary: theme.secondary,
+  accent: theme.accent,
   primaryText: '#FFFFFF',
   locked: '#15803D',
   lockedBg: '#E7F6EC',
@@ -19,7 +24,7 @@ export const colors = {
   unlockedBg: '#FDF1E3',
   danger: '#B91C1C',
   dangerBg: '#FDECEC',
-  neutralBg: '#EEF0F3',
+  neutralBg: theme.secondarySoft,
 };
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -89,7 +94,7 @@ export function Chip({ label, tone = 'neutral', icon }: { label: string; tone?: 
     warn: [colors.unlockedBg, colors.unlocked],
     bad: [colors.dangerBg, colors.danger],
     neutral: [colors.neutralBg, colors.muted],
-    info: ['#E6EEFD', colors.primary],
+    info: [theme.secondarySoft, colors.primary],
   }[tone];
   return (
     <View style={[s.chip, { backgroundColor: t[0] }]}>

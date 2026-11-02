@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import { can } from '../../logic/permissions';
+import { BrandFooter } from '../../ui/Brand';
 import { useStore } from '../../state/AppStore';
 import { Button, Card, colors, ListItem, Muted, Screen, SectionTitle, Title } from '../../ui/components';
 
@@ -31,6 +32,7 @@ export default function MoreScreen() {
         </>
       ) : null}
       <Button variant="danger" icon="log-out" label="Sign out" onPress={signOut} style={{ marginTop: 12 }} />
+      <BrandFooter />
     </Screen>
   );
 }

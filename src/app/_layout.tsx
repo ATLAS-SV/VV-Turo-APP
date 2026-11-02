@@ -4,13 +4,15 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppStoreProvider, useStore } from '../state/AppStore';
 import { colors, Toasts } from '../ui/components';
+import { BRAND, Logo } from '../ui/Brand';
 
 function RootStack() {
   const { loaded, currentUser } = useStore();
   if (!loaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28, backgroundColor: BRAND.dark }}>
+        <Logo size={96} light />
+        <ActivityIndicator color={BRAND.accent} />
       </View>
     );
   }
