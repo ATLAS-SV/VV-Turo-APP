@@ -120,7 +120,7 @@ function MessageTemplateEditor() {
   return (
     <Card>
       <Muted>Fill-ins: {'{guest}'} {'{car}'} {'{link}'} {'{window}'} {'{countdown}'}</Muted>
-      <TextInput value={text} onChangeText={setText} multiline style={[inputStyle, { minHeight: 160, textAlignVertical: 'top' }]} />
+      <TextInput value={text} onChangeText={setText} multiline style={[inputStyle(), { minHeight: 160, textAlignVertical: 'top' }]} />
       {!text.includes('{link}') ? <Muted style={{ color: colors.danger }}>The message needs {'{link}'} so the guest gets their link.</Muted> : null}
       <Row>
         <Button style={{ flex: 1 }} variant="secondary" label="Default" onPress={() => setText(DEFAULT_CHECK_IN_TEMPLATE)} />
@@ -138,9 +138,9 @@ function HomeLotEditor() {
   return (
     <Card>
       <Muted>Name</Muted>
-      <TextInput value={name} onChangeText={setName} style={inputStyle} />
+      <TextInput value={name} onChangeText={setName} style={inputStyle()} />
       <Muted>Address</Muted>
-      <TextInput value={address} onChangeText={setAddress} style={inputStyle} />
+      <TextInput value={address} onChangeText={setAddress} style={inputStyle()} />
       <Muted>
         Boundary: {settings.homeLot.polygon.length}-point outline. The current outline is a placeholder near LAX; it will be
         redrawn around the real lot once the address is confirmed.
@@ -154,7 +154,7 @@ function HomeLotEditor() {
   );
 }
 
-const inputStyle = { backgroundColor: colors.bg, borderRadius: 8, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border, color: colors.text };
+const inputStyle = () => ({ backgroundColor: colors.bg, borderRadius: 8, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border, color: colors.text });
 
 function Stepper({ label, help, unit, value, min, max, step, onChange }: { label: string; help: string; unit: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
   const btn = (icon: 'remove' | 'add', next: number, disabled: boolean) => (

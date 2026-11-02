@@ -6,7 +6,7 @@ import type { LockState } from '../logic/types';
 import { useStore } from '../state/AppStore';
 import { useExpand } from './expandContext';
 
-import { APPEARANCE, theme } from './theme';
+import { getAppearance, onAppearanceChange, theme } from './theme';
 
 const LIGHT = {
   bg: theme.background,
@@ -51,7 +51,8 @@ const DARK: typeof LIGHT = {
   toastBg: '#3B2A78',
 };
 
-export const colors = APPEARANCE === 'dark' ? DARK : LIGHT;
+/** Current palette. Updated in place when the appearance changes (More → Appearance). */
+export const colors: typeof LIGHT = { ...(getAppearance() === 'dark' ? DARK : LIGHT) };
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -229,7 +230,8 @@ export function fmtMoney(n: number) {
   return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const s = StyleSheet.create({
+function makeStyles() {
+  return StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, gap: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, minHeight: 46 },
   buttonText: { fontSize: 16, fontWeight: '600' },
@@ -244,4 +246,12 @@ const s = StyleSheet.create({
   toastWrap: { position: 'absolute', left: 12, right: 12, gap: 8, zIndex: 100 },
   toast: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.toastBg, padding: 12, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   toastText: { color: '#fff', flex: 1, fontSize: 14 },
+});
+}
+
+let s = makeStyles();
+
+onAppearanceChange(() => {
+  Object.assign(colors, getAppearance() === 'dark' ? DARK : LIGHT);
+  s = makeStyles();
 });

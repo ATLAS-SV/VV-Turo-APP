@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { PIN_LENGTH } from '../logic/pin';
 import { colors } from './components';
+import { onAppearanceChange } from './theme';
 
 /** Number pad with dots. Calls onSubmit when the check key is pressed. */
 export function PinPad({
@@ -92,7 +93,8 @@ export function PinPad({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles() {
+  return StyleSheet.create({
   dots: { flexDirection: 'row', gap: 14, minHeight: 18 },
   dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: colors.muted },
   dotFilled: { backgroundColor: colors.text, borderColor: colors.text },
@@ -109,4 +111,10 @@ const styles = StyleSheet.create({
   bOk: { backgroundColor: 'transparent' },
   bOkReady: { backgroundColor: colors.accent, borderColor: colors.accent },
   bPressed: { backgroundColor: 'rgba(212,175,55,0.22)' },
+});
+}
+
+let styles = makeStyles();
+onAppearanceChange(() => {
+  styles = makeStyles();
 });

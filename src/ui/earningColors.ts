@@ -1,5 +1,5 @@
 import type { EarningType } from '../logic/types';
-import { APPEARANCE } from './theme';
+import { getAppearance, onAppearanceChange } from './theme';
 
 /** Fixed order, checked for color-blind separation (dataviz validator, light mode). */
 const LIGHT_CHART: Record<EarningType, string> = {
@@ -17,7 +17,10 @@ const DARK_CHART: Record<EarningType, string> = {
   missed: '#E0566B',
 };
 
-export const EARNING_COLORS = APPEARANCE === 'dark' ? DARK_CHART : LIGHT_CHART;
+/** Current chart colors; updated in place when the appearance changes. */
+export const EARNING_COLORS: Record<EarningType, string> = { ...(getAppearance() === 'dark' ? DARK_CHART : LIGHT_CHART) };
 
 /** Trip-earnings purple at 38% on white: "still to come". Always labeled, never color alone. */
-export const UPCOMING_COLOR = APPEARANCE === 'dark' ? '#5A479C' : '#C1B5E1';
+export const upcomingColor = () => (getAppearance() === 'dark' ? '#5A479C' : '#C1B5E1');
+
+onAppearanceChange(() => Object.assign(EARNING_COLORS, getAppearance() === 'dark' ? DARK_CHART : LIGHT_CHART));

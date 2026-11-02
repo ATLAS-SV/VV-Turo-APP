@@ -27,6 +27,8 @@ export default function MoreScreen() {
         <Divider />
         <ListItem icon="checkbox" label="Tasks" sub="Check-in photos, licenses, claims" onPress={() => router.push('/tasks')} />
         <Divider />
+        <ListItem icon="contrast" label="Appearance" sub="Light or dark (the logo's purple)" onPress={() => router.push('/appearance')} />
+        <Divider />
         {isExec ? (
           <>
             <ListItem icon="time" label="Hours" sub="Clock in/out, everyone's hours" onPress={() => router.navigate('/hours')} />

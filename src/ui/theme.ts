@@ -63,7 +63,25 @@ export const ACTIVE_THEME: ThemeKey = 'royalGold';
 export const theme: BrandTheme = THEMES[ACTIVE_THEME];
 
 /**
- * Appearance. 'light' is the app's look; 'dark' uses the logo's deep purple as the background.
- * Preview it with EXPO_PUBLIC_APPEARANCE=dark when building.
+ * Appearance: 'light', or 'dark' with the logo's deep purple as the background.
+ * Chosen per phone in More → Appearance. EXPO_PUBLIC_APPEARANCE=dark makes dark the starting choice.
  */
-export const APPEARANCE: 'light' | 'dark' = process.env.EXPO_PUBLIC_APPEARANCE === 'dark' ? 'dark' : 'light';
+export type Appearance = 'light' | 'dark';
+export const DEFAULT_APPEARANCE: Appearance = process.env.EXPO_PUBLIC_APPEARANCE === 'dark' ? 'dark' : 'light';
+
+let current: Appearance = DEFAULT_APPEARANCE;
+const listeners = new Set<() => void>();
+
+export const getAppearance = () => current;
+
+/** Switch appearance; modules holding colors rebuild their styles via onAppearanceChange. */
+export function applyAppearance(a: Appearance) {
+  if (a === current) return;
+  current = a;
+  listeners.forEach((f) => f());
+}
+
+export function onAppearanceChange(f: () => void) {
+  listeners.add(f);
+  return () => listeners.delete(f);
+}

@@ -32,9 +32,9 @@ function CarEditor({ car, onSave }: { car: Car | null; onSave: (c: Car) => void 
     <Card>
       {car ? <Title>{carName(car)}</Title> : null}
       <Row>
-        <TextInput value={year} onChangeText={(t) => setYear(t.replace(/\D/g, '').slice(0, 4))} placeholder="Year" keyboardType="number-pad" style={[inputStyle, { width: 80 }]} />
-        <TextInput value={make} onChangeText={setMake} placeholder="Make" style={[inputStyle, { flex: 1 }]} />
-        <TextInput value={model} onChangeText={setModel} placeholder="Model" style={[inputStyle, { flex: 1 }]} />
+        <TextInput value={year} onChangeText={(t) => setYear(t.replace(/\D/g, '').slice(0, 4))} placeholder="Year" keyboardType="number-pad" style={[inputStyle(), { width: 80 }]} />
+        <TextInput value={make} onChangeText={setMake} placeholder="Make" style={[inputStyle(), { flex: 1 }]} />
+        <TextInput value={model} onChangeText={setModel} placeholder="Model" style={[inputStyle(), { flex: 1 }]} />
       </Row>
       {!yearOk ? <Muted>Year looks wrong.</Muted> : null}
       <Button
@@ -52,4 +52,4 @@ function CarEditor({ car, onSave }: { car: Car | null; onSave: (c: Car) => void 
   );
 }
 
-const inputStyle = { backgroundColor: colors.bg, borderRadius: 8, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border, color: colors.text };
+const inputStyle = () => ({ backgroundColor: colors.bg, borderRadius: 8, padding: 10, fontSize: 15, borderWidth: 1, borderColor: colors.border, color: colors.text });

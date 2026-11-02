@@ -29,6 +29,7 @@ import type {
   User,
 } from '../logic/types';
 import { mockFleet, tracker, vehicleControl } from '../services/mockFleet';
+import { DEFAULT_APPEARANCE, type Appearance } from '../ui/theme';
 
 // v2: PINs became exactly 4 digits, so data saved with longer PINs starts fresh.
 const STORAGE_KEY = 'turo-app/v2';
@@ -55,6 +56,8 @@ interface Persisted {
   taskDone: TaskDoneMap;
   /** Reminders already shown, as "taskId:soon" / "taskId:overdue". */
   taskAlertsSent: string[];
+  /** This phone's look: light, or dark with the logo's purple background. */
+  appearance: Appearance;
   mockTelemetry: CarTelemetry[] | null;
   mockTrips: Trip[] | null;
 }
@@ -109,6 +112,7 @@ function initialPersisted(): Persisted {
     shifts: [],
     pinLockout: NO_LOCKOUT,
     lateAlertsSent: [],
+    appearance: DEFAULT_APPEARANCE,
     mockTelemetry: null,
     mockTrips: null,
   };
@@ -169,6 +173,7 @@ function useAppStoreValue() {
       shifts: state.shifts,
       pinLockout: state.pinLockout,
       lateAlertsSent: state.lateAlertsSent,
+      appearance: state.appearance,
       earningExtras: state.earningExtras,
       extraTasks: state.extraTasks,
       taskDone: state.taskDone,
@@ -658,6 +663,8 @@ function useAppStoreValue() {
     runAutomation();
   }, [update, runAutomation]);
 
+  const setAppearance = useCallback((appearance: Appearance) => update((s) => ({ ...s, appearance })), [update]);
+
   const dismissToast = useCallback(
     (id: string) => update((s) => ({ ...s, toasts: s.toasts.filter((t) => t.id !== id) })),
     [update],
@@ -687,6 +694,7 @@ function useAppStoreValue() {
     simulateReturn,
     resetDemoData,
     dismissToast,
+    setAppearance,
     refresh: runAutomation,
   };
 }

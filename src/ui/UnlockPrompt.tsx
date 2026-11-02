@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { carName, useStore } from '../state/AppStore';
 import { colors } from './components';
+import { onAppearanceChange } from './theme';
 import { PinPad } from './PinPad';
 
 /** Unlocking always asks for the signed-in person's PIN. */
@@ -40,11 +41,18 @@ export function UnlockPrompt({ carId, onClose }: { carId: string | null; onClose
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles() {
+  return StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, gap: 6, alignItems: 'center' },
   title: { fontSize: 20, fontWeight: '700', color: colors.text },
   sub: { color: colors.muted, marginBottom: 10 },
   cancel: { padding: 12, marginTop: 4 },
   cancelText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
+});
+}
+
+let styles = makeStyles();
+onAppearanceChange(() => {
+  styles = makeStyles();
 });

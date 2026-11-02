@@ -12,7 +12,7 @@ import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
 import { colors, fmtClock, type IconName, Muted } from '../../ui/components';
 import { DonutChart } from '../../ui/DonutChart';
 import { useExpand } from '../../ui/expandContext';
-import { EARNING_COLORS, UPCOMING_COLOR } from '../../ui/earningColors';
+import { EARNING_COLORS, upcomingColor } from '../../ui/earningColors';
 
 type Alert = { icon: IconName; text: string; to: Href };
 
@@ -149,7 +149,7 @@ export default function OverviewScreen() {
                   size={58}
                   slices={[
                     { key: 'trip', label: 'Trip earnings', value: money.byType.trip.earned, color: EARNING_COLORS.trip },
-                    { key: 'up', label: 'Upcoming', value: money.upcoming, color: UPCOMING_COLOR },
+                    { key: 'up', label: 'Upcoming', value: money.upcoming, color: upcomingColor() },
                     { key: 'r', label: 'Reimbursements', value: money.byType.reimbursement.earned + money.byType.reimbursement.upcoming, color: EARNING_COLORS.reimbursement },
                     { key: 'i', label: 'Incentives', value: money.byType.incentive.earned + money.byType.incentive.upcoming, color: EARNING_COLORS.incentive },
                   ]}
@@ -224,7 +224,7 @@ function short(n: number) {
 }
 
 const rowStyle = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, paddingVertical: 3 };
-const rowText = { flex: 1, color: colors.text, fontSize: 13 };
+const rowText = () => ({ flex: 1, color: colors.text, fontSize: 13 });
 
 function ScrollBody({ children }: { children: ReactNode }) {
   return <ScrollView contentContainerStyle={{ padding: 14, gap: 10, paddingBottom: 40 }}>{children}</ScrollView>;
@@ -248,7 +248,7 @@ function AlertRow({ alert }: { alert: Alert }) {
   return (
     <Pressable ref={ref} onPress={() => expand(ref.current, () => router.push(alert.to), { radius: 8 })} style={rowStyle}>
       <Ionicons name={alert.icon} size={15} color={colors.unlocked} />
-      <Text style={rowText} numberOfLines={1}>
+      <Text style={rowText()} numberOfLines={1}>
         {alert.text}
       </Text>
       <Ionicons name="chevron-forward" size={13} color={colors.muted} />
@@ -265,7 +265,7 @@ function CompactTask({ t, now, carLabel, onDone }: { t: TaskWithState; now: Date
       <Pressable onPress={onDone} accessibilityRole="checkbox" accessibilityState={{ checked: false }} accessibilityLabel={`Mark done: ${t.title}`} hitSlop={8}>
         <Ionicons name="square-outline" size={17} color={colors.primary} />
       </Pressable>
-      <Text style={rowText} numberOfLines={1}>
+      <Text style={rowText()} numberOfLines={1}>
         {t.title}
         {carLabel ? <Text style={{ color: colors.muted }}> · {carLabel}</Text> : null}
       </Text>

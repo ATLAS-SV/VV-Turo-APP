@@ -14,7 +14,7 @@ import { carName, useNow, useStore } from '../../state/AppStore';
 import { Card, colors, fmtMoney, fmtTime, KeyValue, Muted, Row, Screen, SectionTitle } from '../../ui/components';
 import { DonutChart, type DonutSlice } from '../../ui/DonutChart';
 import { SlideOnChange } from '../../ui/motion';
-import { EARNING_COLORS, UPCOMING_COLOR } from '../../ui/earningColors';
+import { EARNING_COLORS, upcomingColor } from '../../ui/earningColors';
 
 /** Earnings by month: big numbers, a donut of where the money came from, by car, and payouts. Executive only. */
 export default function MoneyScreen() {
@@ -43,7 +43,7 @@ export default function MoneyScreen() {
   const incent = sum.byType.incentive.earned + sum.byType.incentive.upcoming;
   const slices: DonutSlice[] = [
     { key: 'trip', label: 'Trip earnings', value: sum.byType.trip.earned, color: EARNING_COLORS.trip },
-    { key: 'upcoming', label: 'Upcoming', value: sum.upcoming, color: UPCOMING_COLOR },
+    { key: 'upcoming', label: 'Upcoming', value: sum.upcoming, color: upcomingColor() },
     { key: 'reimb', label: 'Reimbursements', value: reimb, color: EARNING_COLORS.reimbursement },
     { key: 'incent', label: 'Incentives', value: incent, color: EARNING_COLORS.incentive },
   ];
@@ -95,7 +95,7 @@ export default function MoneyScreen() {
         {/* Breakdown = the donut's legend, with amounts and shares */}
         <Card>
           <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
-          <BreakdownRow color={UPCOMING_COLOR} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
+          <BreakdownRow color={upcomingColor()} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
           <BreakdownRow color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
           <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
           <View style={{ height: 1, backgroundColor: colors.border }} />

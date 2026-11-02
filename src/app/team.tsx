@@ -80,7 +80,7 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
             keyboardType="number-pad"
             secureTextEntry
             maxLength={4}
-            style={inputStyle}
+            style={inputStyle()}
           />
           <Row>
             <Button style={{ flex: 1 }} variant="secondary" label="Cancel" onPress={() => { setEditing(false); setNewPin(''); setMsg(null); }} />
@@ -125,7 +125,7 @@ function AddPerson() {
   const [msg, setMsg] = useState<string | null>(null);
   return (
     <Card>
-      <TextInput value={name} onChangeText={setName} placeholder="Name" style={inputStyle} />
+      <TextInput value={name} onChangeText={setName} placeholder="Name" style={inputStyle()} />
       <TextInput
         value={pin}
         onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
@@ -133,7 +133,7 @@ function AddPerson() {
         keyboardType="number-pad"
         secureTextEntry
         maxLength={4}
-        style={inputStyle}
+        style={inputStyle()}
       />
       <Row>
         <Button style={{ flex: 1 }} label="Employee" variant={role === 'employee' ? 'primary' : 'secondary'} onPress={() => setRole('employee')} />
@@ -153,4 +153,4 @@ function AddPerson() {
   );
 }
 
-const inputStyle = { backgroundColor: colors.bg, borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: colors.border, color: colors.text };
+const inputStyle = () => ({ backgroundColor: colors.bg, borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: colors.border, color: colors.text });
