@@ -4,12 +4,14 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppStoreProvider, useStore } from '../state/AppStore';
-import { BRAND, Logo } from '../ui/Brand';
+import { Logo } from '../ui/Brand';
 import { colors, Toasts } from '../ui/components';
 import { LogoTransitionProvider } from '../ui/LogoTransition';
 import { ExpandProvider } from '../ui/motion';
 import { isGlass } from '../ui/bubble';
 import GlassBackdrop from '../ui/GlassBackdrop';
+import LogoGradient from '../ui/LogoGradient';
+import { LOGO } from '../ui/logoColors';
 import { GlassBar } from '../ui/GlassBar';
 import { applyAppearance, isLightLook, type Appearance } from '../ui/theme';
 
@@ -31,9 +33,10 @@ function RootStack() {
   const { loaded, currentUser } = useStore();
   if (!loaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28, backgroundColor: BRAND.dark }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28, backgroundColor: LOGO.to }}>
+        <LogoGradient />
         <Logo size={96} light />
-        <ActivityIndicator color={BRAND.accent} />
+        <ActivityIndicator color={LOGO.gold} />
       </View>
     );
   }

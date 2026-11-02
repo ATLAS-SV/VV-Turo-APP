@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, Platform, Text, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { measure, useLogoTransition } from './logoTransitionContext';
+import LogoGradient from './LogoGradient';
+import { LOGO } from './logoColors';
 import { RAIL_Y, TrackRun } from './TrackRun';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isLightLook, theme } from './theme';
@@ -71,7 +73,7 @@ export function BrandFooter() {
   );
 }
 
-/** Colors for the PIN screen: always the logo look (gold on deep purple), whatever the app's appearance. */
+/** Colors for the PIN screen: always the logo (gold on the logo gradient), whatever the app's appearance. */
 export interface PinScreenLook {
   glass: boolean;
   lightText: boolean;
@@ -97,27 +99,27 @@ export interface PinScreenLook {
 const LOGO_LOOK: PinScreenLook = {
   glass: false,
   lightText: true,
-  bg: theme.primaryDark,
-  frame: theme.accent,
+  bg: LOGO.to, // under the logo gradient
+  frame: LOGO.gold,
   panel: 'transparent',
-  mono: theme.accent,
-  sub: '#E9DFC4',
-  demoBg: 'rgba(212,175,55,0.16)',
-  demoText: '#F7EED5',
-  keyBg: 'rgba(255,255,255,0.04)',
-  keyBorder: 'rgba(212,175,55,0.55)',
-  keyText: '#F7EED5',
-  keyPressed: 'rgba(212,175,55,0.22)',
-  icon: theme.accent,
-  okReadyBg: theme.accent,
-  okReadyFg: theme.primaryDark,
-  dotRing: 'rgba(212,175,55,0.6)',
-  dotFill: theme.accent,
-  error: '#FFB8B8',
+  mono: LOGO.gold,
+  sub: '#EFE6FF',
+  demoBg: 'rgba(255,255,255,0.12)',
+  demoText: '#FFF7E0',
+  keyBg: 'rgba(255,255,255,0.08)',
+  keyBorder: 'rgba(244,207,94,0.6)',
+  keyText: '#FFF7E6',
+  keyPressed: 'rgba(244,207,94,0.28)',
+  icon: LOGO.gold,
+  okReadyBg: LOGO.gold,
+  okReadyFg: LOGO.to,
+  dotRing: 'rgba(244,207,94,0.65)',
+  dotFill: LOGO.gold,
+  error: '#FFC4C4',
 };
 
 export function pinScreenLook(): PinScreenLook {
-  // Same in every appearance: the PIN screen is the logo, so it shrinks smoothly into the purple header logo.
+  // Same in every appearance: the PIN screen is the logo, so it shrinks smoothly into the header logo.
   return LOGO_LOOK;
 }
 
@@ -153,6 +155,7 @@ export function LogoScreen({ children }: { children: ReactNode }) {
   const look = pinScreenLook();
   return (
     <View style={{ flex: 1, backgroundColor: look.bg, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 12 }}>
+      <LogoGradient />
       <View
         ref={frameRef}
         onLayout={report}
@@ -203,7 +206,7 @@ export const VV_LINE = 1.1;
 export const vvFontSize = (short: boolean) => (short ? 56 : 84);
 
 /** "VALADON VENTURES" with the short gold rule under it (PIN screen and its transition). */
-export function CompanyName({ short, color = BRAND.accent }: { short: boolean; color?: string }) {
+export function CompanyName({ short, color = LOGO.gold }: { short: boolean; color?: string }) {
   return (
     <>
       <Text style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: short ? 12 : 15, letterSpacing: short ? 4 : 5, color }}>VALADON VENTURES</Text>

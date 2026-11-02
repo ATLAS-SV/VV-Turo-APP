@@ -9,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CompanyName, HEADER_MARK_SIZE, LOGO_SERIF, VV_LINE, vvFontSize } from './Brand';
 import { LogoTransitionCtx, measure, type LogoTransitionApi, type Rect } from './logoTransitionContext';
 import { prefersReducedMotion } from './motion';
-import { theme } from './theme';
+import LogoGradient from './LogoGradient';
+import { LOGO } from './logoColors';
 
 const COVER_MS = 160;
 const SHRINK_MS = 620;
@@ -92,8 +93,10 @@ export function LogoTransitionProvider({ children }: { children: ReactNode }) {
 
     overlay = (
       <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 2000, elevation: 2000, opacity }}>
-        <Animated.View style={{ position: 'absolute', backgroundColor: theme.primaryDark, ...box }} />
-        <Animated.View style={{ position: 'absolute', borderColor: theme.accent, ...frame }} />
+        <Animated.View style={{ position: 'absolute', backgroundColor: LOGO.to, overflow: 'hidden', ...box }}>
+          <LogoGradient />
+        </Animated.View>
+        <Animated.View style={{ position: 'absolute', borderColor: LOGO.gold, ...frame }} />
         <Animated.View
           style={{
             position: 'absolute',
@@ -120,7 +123,7 @@ export function LogoTransitionProvider({ children }: { children: ReactNode }) {
               textAlign: 'center',
               fontFamily: LOGO_SERIF,
               fontWeight: '700',
-              color: theme.accent,
+              color: LOGO.gold,
               fontSize,
               lineHeight: Animated.multiply(fontSize, VV_LINE),
               letterSpacing: run.target ? lerp(-2, -0.3) : -2,

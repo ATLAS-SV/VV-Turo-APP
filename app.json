@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1E0E45",
+        "backgroundColor": "#22105A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -24,7 +24,7 @@
       "name": "VV inc.",
       "shortName": "VV inc.",
       "themeColor": "#1E0E45",
-      "backgroundColor": "#1E0E45"
+      "backgroundColor": "#22105A"
     },
     "plugins": [
       [
@@ -40,7 +40,7 @@
         {
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
-          "backgroundColor": "#1E0E45"
+          "backgroundColor": "#22105A"
         }
       ],
       "expo-notifications"
