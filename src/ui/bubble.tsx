@@ -68,12 +68,13 @@ export function Bouncy({ style, children, onPressIn, onPressOut, ...rest }: Omit
 }
 
 /**
- * A row that leaves like a popped bubble: when `leaving` turns on it swells a little (bouncy), holds a
- * beat so you see the tick, then shrinks and fades away while the space it took closes up, and only
- * then calls onGone (e.g. to mark the task done, which removes the row).
+ * A row that leaves smoothly: when `leaving` turns on it lifts a touch, then shrinks and fades while
+ * the space it took glides closed, and only then calls onGone (e.g. to mark the task done, which
+ * removes the row). Scale/fade run on the native driver; the gap closing is a separate, eased value.
  */
 export function PopAway({ leaving, onGone, children, style }: { leaving: boolean; onGone: () => void; children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const [v] = useState(() => new Animated.Value(0)); // 0 resting · 1 swelled · 2 gone
+  const [pop] = useState(() => new Animated.Value(0)); // 0 resting · 1 lifted · 2 gone (scale + fade)
+  const [size] = useState(() => new Animated.Value(1)); // 1 full height · 0 collapsed
   const [h, setH] = useState<number | null>(null);
   const gone = useRef(onGone);
   useEffect(() => {
@@ -81,39 +82,39 @@ export function PopAway({ leaving, onGone, children, style }: { leaving: boolean
   });
   useEffect(() => {
     if (!leaving) {
-      v.setValue(0);
+      pop.setValue(0);
+      size.setValue(1);
       return;
     }
     if (reduceMotion) {
       gone.current();
       return;
     }
-    const anim = Animated.sequence([
-      Animated.spring(v, { toValue: 1, speed: 24, bounciness: 12, useNativeDriver: false, restDisplacementThreshold: 0.02, restSpeedThreshold: 0.05 }),
-      Animated.delay(110),
-      Animated.timing(v, { toValue: 2, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: false }),
+    const anim = Animated.parallel([
+      Animated.sequence([
+        Animated.timing(pop, { toValue: 1, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: nativeDriver }),
+        Animated.timing(pop, { toValue: 2, duration: 260, easing: Easing.inOut(Easing.cubic), useNativeDriver: nativeDriver }),
+      ]),
+      Animated.timing(size, { toValue: 0, duration: 300, delay: 170, easing: Easing.inOut(Easing.cubic), useNativeDriver: false }),
     ]);
     anim.start(({ finished }) => finished && gone.current());
     return () => anim.stop();
-  }, [leaving, v]);
+  }, [leaving, pop, size]);
   return (
     <Animated.View
       onLayout={(e) => {
         if (!leaving) setH(e.nativeEvent.layout.height);
       }}
-      style={[
-        style,
-        leaving && h != null
-          ? { height: v.interpolate({ inputRange: [0, 1.2, 2], outputRange: [h, h, 0], extrapolate: 'clamp' }), overflow: 'hidden' as const }
-          : null,
-        {
-          zIndex: leaving ? 2 : 0,
-          opacity: v.interpolate({ inputRange: [0, 1.15, 1.85], outputRange: [1, 1, 0], extrapolate: 'clamp' }),
-          transform: [{ scale: v.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.06, 0.45] }) }],
-        },
-      ]}
+      style={[style, leaving && h != null ? { height: size.interpolate({ inputRange: [0, 1], outputRange: [0, h] }), overflow: 'hidden' as const } : null]}
     >
-      {children}
+      <Animated.View
+        style={{
+          opacity: pop.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1, 0], extrapolate: 'clamp' }),
+          transform: [{ scale: pop.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.015, 0.92], extrapolate: 'clamp' }) }],
+        }}
+      >
+        {children}
+      </Animated.View>
     </Animated.View>
   );
 }
