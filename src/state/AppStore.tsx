@@ -148,6 +148,8 @@ function useAppStoreValue() {
         // Corrupt or unavailable storage: start fresh.
       }
       const merged = { ...initialPersisted(), ...saved, settings: { ...DEFAULT_SETTINGS, ...saved.settings } };
+      // The pretend cars gained placeholder plates; fill them in for data saved before that.
+      merged.cars = merged.cars.map((c) => (c.plate ? c : { ...c, plate: SEED_CARS.find((x) => x.id === c.id)?.plate }));
       // Demo build: ready-made people so anyone can try both views without setting up PINs.
       if (DEMO_MODE && !merged.users.length) {
         const now = new Date().toISOString();

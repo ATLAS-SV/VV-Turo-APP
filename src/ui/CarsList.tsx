@@ -4,12 +4,12 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, type HostInstance, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nextBookingForCar } from '../logic/bookings';
-import { distanceMeters, formatDistance, isInLot, polygonCenter } from '../logic/geo';
+import { isInLot } from '../logic/geo';
 import { can, canUnlockCar } from '../logic/permissions';
 import type { Booking, Car, CarTelemetry } from '../logic/types';
 import { carName, useNow, useStore } from '../state/AppStore';
 import { Bouncy, glassFx, isGlass, PopIn } from './bubble';
-import { colors, fmtAgo, fmtClock, Muted } from './components';
+import { colors, fmtClock, Muted } from './components';
 import { useExpand } from './expandContext';
 import { FilterChips, matchesQuery, NoMatches, SearchBar, type FilterOption } from './filters';
 import LogoGradient from './LogoGradient';
@@ -19,8 +19,7 @@ import { UnlockPrompt } from './UnlockPrompt';
 
 /**
  * The fleet as a train (Cars tab, layout 1A): a locomotive in the logo's colors leads with the fleet
- * summary and Lock all, then one carriage per car — window strip on top, wheels underneath, couplers
- * between. Tap a carriage to open the car; its round button locks it (or unlocks with your PIN).
+ * summary and Lock all, then one carriage per car (plate, make and model, trip) on its own stretch of track. Tap a carriage to open the car; its round button locks it (or unlocks with your PIN).
  */
 export function CarsList() {
   const store = useStore();
@@ -131,7 +130,7 @@ export function CarsList() {
   );
 }
 
-/** Lead engine: the logo's gradient, a cab with gold windows, big drive wheels. */
+/** Lead engine: the logo's gradient and a cab with gold windows. */
 function Locomotive({
   total,
   unlocked,
@@ -151,7 +150,7 @@ function Locomotive({
 }) {
   const allLocked = unlocked === 0;
   return (
-    <View style={{ paddingBottom: 16, marginTop: 12 }}>
+    <View style={{ paddingBottom: 12, marginTop: 12 }}>
       {/* cab */}
       <View
         style={{
@@ -225,8 +224,6 @@ function Locomotive({
         </View>
       </View>
       <Track />
-      <Wheels side="left" count={3} size={18} />
-      <Wheels side="right" count={2} size={14} />
     </View>
   );
 }
@@ -261,42 +258,36 @@ function Carriage({
   const t = telemetry[car.id];
   const busy = busyCars[car.id];
   const isUnlocked = t?.lockState === 'unlocked';
-  const inLot = t ? isInLot(t.position, settings.homeLot) : false;
   const allowedUnlock = canUnlockCar(currentUser, car.id, settings);
-  const lotCenter = polygonCenter(settings.homeLot.polygon);
-
-  const where = !t
-    ? 'No location yet'
-    : t.moving
-      ? `Driving · ${formatDistance(distanceMeters(t.position, lotCenter))} from lot`
-      : inLot
-        ? `In ${settings.homeLot.name}`
-        : `${formatDistance(distanceMeters(t.position, lotCenter))} from lot · parked ${fmtAgo(t.parkedSince, now)}`;
   const lockText = isUnlocked ? 'Unlocked' : t?.lockState === 'locked' ? 'Locked' : 'Lock unknown';
+  // Main name is the plate; make and model sit smaller under it.
+  const plate = car.plate?.trim();
+  const title = plate || `${car.make} ${car.model}`;
+  const subtitle = plate ? carName(car) : `${carName(car)} · no plate yet`;
 
-  // What's next for this car, and whether it needs you.
-  let nextText = 'No trips booked';
-  let nextColor = colors.muted;
+  // The trip line: no bookings, on a trip, or the next trip.
+  let tripText = 'No bookings';
+  let tripColor = colors.muted;
   let needsYou = isUnlocked;
   if (next) {
     const onTrip = Date.parse(next.tripStart) <= now.getTime();
-    const who = showGuest ? next.guestFirstName : null;
-    if (onTrip) nextText = `${who ? `${who} on trip` : 'On a trip'} · back ${when(next.tripEnd, now)}`;
-    else {
+    const who = showGuest ? ` · ${next.guestFirstName}` : '';
+    if (onTrip) {
+      tripText = `On trip${who} · back ${when(next.tripEnd, now)}`;
+      tripColor = colors.primary;
+    } else {
       const linkMissing = showGuest && next.checkIn.state === 'waiting' && !next.linkSentAt && Date.parse(next.tripStart) - now.getTime() < 24 * 3600_000;
-      nextText = `${who ? `${who} picks up` : 'Pickup'} ${when(next.tripStart, now)}${linkMissing ? ' · link not sent' : ''}`;
-      if (linkMissing) {
-        nextColor = colors.unlocked;
-        needsYou = true;
-      }
+      tripText = `Next trip${who} · ${when(next.tripStart, now)}${linkMissing ? ' · link not sent' : ''}`;
+      tripColor = linkMissing ? colors.unlocked : colors.text;
+      needsYou = needsYou || linkMissing;
     }
   }
 
   const open = () => expand(ref.current, () => router.push(`/car/${car.id}`), { radius: 18 });
 
   return (
-    <View style={{ paddingBottom: 16 }}>
-      <Bouncy onPress={open} accessibilityRole="button" accessibilityLabel={`${carName(car)}. ${where}. ${lockText}. ${nextText}.`}>
+    <View style={{ paddingBottom: 12 }}>
+      <Bouncy onPress={open} accessibilityRole="button" accessibilityLabel={`${plate ? `Plate ${plate}, ` : ''}${carName(car)}. ${lockText}. ${tripText}.`}>
         <View
           ref={ref}
           style={[
@@ -327,25 +318,20 @@ function Carriage({
           </View>
           <View style={{ width: 10, height: 36, borderRadius: 4, backgroundColor: car.color ?? colors.muted }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }} numberOfLines={1}>
-              {carName(car)}
+            <Text style={{ fontSize: 19, fontWeight: '800', letterSpacing: plate ? 1.2 : 0, color: colors.text }} numberOfLines={1}>
+              {title}
             </Text>
-            <Text
-              style={{ fontSize: 12, fontWeight: '600', color: isUnlocked ? colors.unlocked : t?.moving ? colors.primary : inLot ? colors.locked : colors.muted }}
-              numberOfLines={1}
-            >
-              {where} · {lockText}
+            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.muted }} numberOfLines={1}>
+              {subtitle}
             </Text>
-            <Text style={{ fontSize: 12, fontWeight: nextColor === colors.muted ? '500' : '700', color: nextColor }} numberOfLines={1}>
-              {nextText}
+            <Text style={{ fontSize: 13, fontWeight: '700', color: tripColor, marginTop: 2 }} numberOfLines={2}>
+              {tripText}
             </Text>
           </View>
           <LockButton unlocked={isUnlocked} busy={busy} allowedUnlock={allowedUnlock} onLock={onLock} onUnlock={onUnlock} carLabel={carName(car)} />
         </View>
       </Bouncy>
       <Track />
-      <Wheels side="left" count={2} size={13} />
-      <Wheels side="right" count={2} size={13} />
     </View>
   );
 }
@@ -381,27 +367,6 @@ function LockButton({
     >
       {busy ? <ActivityIndicator color={fg} /> : <Ionicons name={unlocked ? 'lock-closed' : 'lock-open'} size={19} color={fg} />}
     </Pressable>
-  );
-}
-
-/** A pair (or trio) of wheels peeking out under a carriage. */
-function Wheels({ side, count, size }: { side: 'left' | 'right'; count: number; size: number }) {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', bottom: 6, [side]: 28, flexDirection: 'row', gap: 4 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <View
-          key={i}
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: Math.round(size / 4.5),
-            borderColor: colors.secondary,
-            backgroundColor: colors.bg === 'transparent' ? 'rgba(255,255,255,0.5)' : colors.bg,
-          }}
-        />
-      ))}
-    </View>
   );
 }
 

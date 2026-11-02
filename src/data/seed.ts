@@ -39,10 +39,10 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const SEED_CARS: Car[] = [
-  { id: 'gv70', year: 2026, make: 'Genesis', model: 'GV70', color: '#2E3A4F' },
-  { id: 'tx', year: 2026, make: 'Lexus', model: 'TX', color: '#8C8C8C' },
-  { id: 'bmw3', year: 2026, make: 'BMW', model: '3 Series', color: '#1F4E8C' },
-  { id: 'rogue', year: 2026, make: 'Nissan', model: 'Rogue', color: '#A23B2A' },
+  { id: 'gv70', year: 2026, make: 'Genesis', model: 'GV70', color: '#2E3A4F', plate: '9VVG470' },
+  { id: 'tx', year: 2026, make: 'Lexus', model: 'TX', color: '#8C8C8C', plate: '9VVL215' },
+  { id: 'bmw3', year: 2026, make: 'BMW', model: '3 Series', color: '#1F4E8C', plate: '9VVB833' },
+  { id: 'rogue', year: 2026, make: 'Nissan', model: 'Rogue', color: '#A23B2A', plate: '9VVN064' },
 ];
 
 export function seedTelemetry(now: number): CarTelemetry[] {
