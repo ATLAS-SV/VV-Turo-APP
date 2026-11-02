@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type HostInstance } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
@@ -12,7 +12,7 @@ import type { Booking } from '../../logic/types';
 import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
 import { LOGO_SERIF } from '../../ui/Brand';
 import { TicketStack } from '../../ui/BookingsList';
-import { Bouncy, glassFx, isGlass, PopIn, radius } from '../../ui/bubble';
+import { Bouncy, glassFx, isGlass, PopAway, PopIn, radius } from '../../ui/bubble';
 import { colors, fmtClock, type IconName, Muted } from '../../ui/components';
 import { useExpand } from '../../ui/expandContext';
 import { fmtDay, Perforation, stubColor, ticketShadow } from '../../ui/ticket';
@@ -506,26 +506,34 @@ function AlertRow({ alert }: { alert: Alert }) {
 
 /** A task that needs you: colored dot, title, when, and a tick to finish it. */
 function NeedRow({ t, now, carLabel, onDone }: { t: TaskWithState; now: Date; carLabel: string; onDone: () => void }) {
+  const [leaving, setLeaving] = useState(false);
   const overdue = t.status === 'overdue';
   const mins = Math.round((Date.parse(t.dueAt) - now.getTime()) / 60_000);
+  const ring = overdue ? colors.danger : theme.accent;
+  // Tick it: the row swells, the circle fills with a check, then the row shrinks away and it's done.
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: overdue ? colors.danger : theme.accent }} />
-      <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }} numberOfLines={1}>
-        {t.title}
-        {carLabel ? <Text style={{ color: colors.muted, fontWeight: '400' }}> · {carLabel}</Text> : null}
-      </Text>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: overdue ? colors.danger : colors.unlocked }}>
-        {overdue ? 'Overdue' : mins < 60 ? `${mins} min` : `${Math.round(mins / 60)} h`}
-      </Text>
-      <Pressable
-        onPress={onDone}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: false }}
-        accessibilityLabel={`Mark done: ${t.title}`}
-        hitSlop={8}
-        style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: overdue ? colors.danger : theme.accent }}
-      />
-    </View>
+    <PopAway leaving={leaving} onGone={onDone}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: overdue ? colors.danger : theme.accent }} />
+        <Text style={{ flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' }} numberOfLines={1}>
+          {t.title}
+          {carLabel ? <Text style={{ color: colors.muted, fontWeight: '400' }}> · {carLabel}</Text> : null}
+        </Text>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: overdue ? colors.danger : colors.unlocked }}>
+          {overdue ? 'Overdue' : mins < 60 ? `${mins} min` : `${Math.round(mins / 60)} h`}
+        </Text>
+        <Pressable
+          onPress={() => setLeaving(true)}
+          disabled={leaving}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: leaving }}
+          accessibilityLabel={`Mark done: ${t.title}`}
+          hitSlop={8}
+          style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: ring, backgroundColor: leaving ? ring : 'transparent', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {leaving ? <Ionicons name="checkmark" size={16} color={overdue ? '#FFFFFF' : '#1E0E45'} /> : null}
+        </Pressable>
+      </View>
+    </PopAway>
   );
 }

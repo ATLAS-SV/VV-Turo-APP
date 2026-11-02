@@ -49,7 +49,7 @@ export default function TasksScreen() {
               {g.title} ({g.list.length})
             </SectionTitle>
             {g.list.map((t) => (
-              <TaskRow key={t.id} t={t} now={now} />
+              <TaskRow key={t.id} t={t} now={now} vanish />
             ))}
           </Card>
         ) : null,

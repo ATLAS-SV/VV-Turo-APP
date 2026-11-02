@@ -1,6 +1,6 @@
 // Bubbly motion (every appearance) + the glass surface look (Glass Light / Glass Dark only).
-import { useEffect, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Easing, Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { getAppearance, isLightLook } from './theme';
 
 // ---------- Reduce Motion (known ahead of time so animations can start instantly) ----------
@@ -64,6 +64,57 @@ export function Bouncy({ style, children, onPressIn, onPressOut, ...rest }: Omit
     >
       {children}
     </AnimatedPressable>
+  );
+}
+
+/**
+ * A row that leaves like a popped bubble: when `leaving` turns on it swells a little (bouncy), holds a
+ * beat so you see the tick, then shrinks and fades away while the space it took closes up, and only
+ * then calls onGone (e.g. to mark the task done, which removes the row).
+ */
+export function PopAway({ leaving, onGone, children, style }: { leaving: boolean; onGone: () => void; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const [v] = useState(() => new Animated.Value(0)); // 0 resting · 1 swelled · 2 gone
+  const [h, setH] = useState<number | null>(null);
+  const gone = useRef(onGone);
+  useEffect(() => {
+    gone.current = onGone;
+  });
+  useEffect(() => {
+    if (!leaving) {
+      v.setValue(0);
+      return;
+    }
+    if (reduceMotion) {
+      gone.current();
+      return;
+    }
+    const anim = Animated.sequence([
+      Animated.spring(v, { toValue: 1, speed: 24, bounciness: 12, useNativeDriver: false, restDisplacementThreshold: 0.02, restSpeedThreshold: 0.05 }),
+      Animated.delay(110),
+      Animated.timing(v, { toValue: 2, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: false }),
+    ]);
+    anim.start(({ finished }) => finished && gone.current());
+    return () => anim.stop();
+  }, [leaving, v]);
+  return (
+    <Animated.View
+      onLayout={(e) => {
+        if (!leaving) setH(e.nativeEvent.layout.height);
+      }}
+      style={[
+        style,
+        leaving && h != null
+          ? { height: v.interpolate({ inputRange: [0, 1.2, 2], outputRange: [h, h, 0], extrapolate: 'clamp' }), overflow: 'hidden' as const }
+          : null,
+        {
+          zIndex: leaving ? 2 : 0,
+          opacity: v.interpolate({ inputRange: [0, 1.15, 1.85], outputRange: [1, 1, 0], extrapolate: 'clamp' }),
+          transform: [{ scale: v.interpolate({ inputRange: [0, 1, 2], outputRange: [1, 1.06, 0.45] }) }],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
