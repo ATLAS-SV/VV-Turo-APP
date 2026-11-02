@@ -46,6 +46,23 @@ export default function SettingsScreen() {
       <SectionTitle>Check-in message (sent in Turo)</SectionTitle>
       <MessageTemplateEditor />
 
+      <SectionTitle>Tasks & reminders</SectionTitle>
+      <Card>
+        {num('licenseDueMinutesBefore', 'Confirm license by', 'Minutes before trip start.', 'min before', 0, 1440, 15)}
+        {num('checkoutPhotosDueMinutesAfter', 'Check-out photos by', 'Minutes after trip end.', 'min after', 15, 1440, 15)}
+        {num('taskReminderMinutes', 'Remind me', 'Minutes before a task is due. You also get an alert when it’s overdue.', 'min before', 5, 720, 5)}
+        <Row style={{ justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>Phone notifications</Text>
+            <Muted>Reminders arrive on this phone even when the app is closed.</Muted>
+          </View>
+          <Switch
+            value={settings.taskPhoneNotifications}
+            onValueChange={(v) => updateSettings({ taskPhoneNotifications: v }, `Task phone notifications ${v ? 'on' : 'off'}`)}
+          />
+        </Row>
+      </Card>
+
       <SectionTitle>Alerts</SectionTitle>
       <Card>
         <Row style={{ justifyContent: 'space-between' }}>

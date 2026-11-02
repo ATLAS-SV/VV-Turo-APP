@@ -5,7 +5,8 @@ import { Linking, Text } from 'react-native';
 import { IN_LOT } from '../../data/seed';
 import { buildCheckInMessage } from '../../logic/checkInMessage';
 import { countdownEndsAt, isLinkExpired, pickupWindow, retriesLeft } from '../../logic/guestCheckIn';
-import { carName, useNow, useStore } from '../../state/AppStore';
+import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
+import { TaskRow } from '../../ui/TaskRow';
 import { Button, Card, Chip, colors, fmtMoney, fmtTime, KeyValue, Muted, Row, Screen, SectionTitle, Title } from '../../ui/components';
 import { CHECK_IN_LABEL } from '../../ui/labels';
 
@@ -21,6 +22,7 @@ export default function BookingDetail() {
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [testMsg, setTestMsg] = useState<string | null>(null);
+  const tripTasks = useTasks().filter((t) => t.bookingId === id);
   const b = bookings.find((x) => x.id === id);
   if (!b) return <Screen><Muted>Booking not found.</Muted></Screen>;
 
@@ -62,6 +64,13 @@ export default function BookingDetail() {
 
       {!b.canceled ? (
         <>
+          <SectionTitle>Trip checklist</SectionTitle>
+          <Card style={{ gap: 0 }}>
+            {tripTasks.map((t) => (
+              <TaskRow key={t.id} t={t} now={now} />
+            ))}
+          </Card>
+
           <SectionTitle>Guest check-in link</SectionTitle>
           <Card>
             <Chip label={ci.label} tone={ci.tone} />

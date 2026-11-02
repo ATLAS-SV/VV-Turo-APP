@@ -194,18 +194,51 @@ describe('money', () => {
       [booking({ id: 'x', tripEnd: at(10), earnings: 300 }), booking({ id: 'y', tripEnd: at(25), earnings: 200 }), booking({ id: 'z', tripEnd: at(5), earnings: 999, canceled: true })],
       [
         { id: 'i', type: 'incentive', amount: 50, date: at(3), description: 'Bonus', source: 'pretend' },
-        { id: 'c', type: 'claim', amount: 650, date: new Date(2026, 9, 3).toISOString(), description: 'Oct claim', source: 'pretend' },
+        { id: 'c', type: 'reimbursement', amount: 650, date: new Date(2026, 9, 3).toISOString(), description: 'Oct claim payout', source: 'pretend' },
       ],
     );
     const s = summarizeMonth(items, [{ id: 'p', sentAt: at(12), amount: 340, method: 'Bank', source: 'pretend' }], '2026-11', now);
     expect(s.earned).toBe(350);
     expect(s.upcoming).toBe(200);
     expect(s.byType.trip).toEqual({ earned: 300, upcoming: 200 });
-    expect(s.byType.claim.earned).toBe(0);
+    expect(s.byType.reimbursement.earned).toBe(0);
+    expect(s.missed).toBe(999); // canceled booking: shown as missed, not counted
+    expect(s.byType.missed.earned).toBe(999);
     expect(s.tripCount).toBe(2);
     expect(s.paidOut).toBe(340);
     expect(monthWhen('2026-10', now)).toBe('past');
     expect(monthWhen('2026-12', now)).toBe('future');
     expect(addMonths('2026-12', 1)).toBe('2027-01');
+  });
+});
+
+describe('overview schedule', () => {
+  it('lists cars going out today and tomorrow, skipping canceled', async () => {
+    const { pickupsOn, tomorrow } = await import('./bookings');
+    const now = new Date(2026, 10, 2, 9);
+    const list = [
+      booking({ id: 'a', tripStart: new Date(2026, 10, 2, 15).toISOString() }),
+      booking({ id: 'b', tripStart: new Date(2026, 10, 2, 11).toISOString() }),
+      booking({ id: 'c', tripStart: new Date(2026, 10, 3, 10).toISOString() }),
+      booking({ id: 'd', tripStart: new Date(2026, 10, 3, 8).toISOString(), canceled: true }),
+    ];
+    expect(pickupsOn(list, now).map((b) => b.id)).toEqual(['b', 'a']);
+    expect(pickupsOn(list, tomorrow(now)).map((b) => b.id)).toEqual(['c']);
+  });
+});
+
+describe('tasks', () => {
+  it('builds a checklist per booking with due times, status and reminders', async () => {
+    const { allTasks, reminderTimes } = await import('./tasks');
+    const b = booking({ tripStart: minFromNow(30), tripEnd: minFromNow(3000) });
+    const tasks = allTasks([b, booking({ id: 'gone', canceled: true })], [], { 'b1:checkin_photos': { at: NOW.toISOString(), by: 'S' } }, S, NOW);
+    expect(tasks.map((t) => t.kind)).toEqual(['confirm_license', 'checkin_photos', 'checkin_dash_photo', 'checkout_photos', 'checkout_dash_photo']);
+    const byKind = Object.fromEntries(tasks.map((t) => [t.kind, t]));
+    expect(byKind.confirm_license.status).toBe('overdue'); // due 60 min before a start 30 min away
+    expect(byKind.checkin_photos.status).toBe('done');
+    expect(byKind.checkin_dash_photo.status).toBe('due_soon');
+    expect(byKind.checkout_photos.status).toBe('upcoming');
+    const r = reminderTimes(byKind.checkin_dash_photo, S);
+    expect(r[0].at.getTime()).toBe(Date.parse(minFromNow(30)) - 60 * 60_000);
   });
 });

@@ -30,7 +30,8 @@
           "imageWidth": 160,
           "backgroundColor": "#1E0E45"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "scheme": "fleetcontrol"
   }

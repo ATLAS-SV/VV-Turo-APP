@@ -18,7 +18,7 @@ Scan the QR code with the **Expo Go** app on your phone. The app always opens to
 on the very first launch it asks you to create the Executive PIN. Press `w` to open a browser preview instead (the map is simplified in the browser).
 
 ```bash
-npm test          # rules: auto-lock, guest check-in, PIN lockout, roles, hours, money
+npm test          # rules: auto-lock, guest check-in, PIN lockout, roles, hours, money, tasks, schedule
 npm run typecheck
 npx expo lint
 ```
@@ -27,7 +27,10 @@ npx expo lint
 
 | Area | Where |
 | --- | --- |
+| **Overview** (raised middle tab, opens after the PIN): needs attention, tasks, fleet, map, hours, cars going out today & tomorrow, money, recent activity; every card opens its page | `src/app/(tabs)/index.tsx` |
+| **Tasks**: every booking auto-gets a checklist (confirm license, check-in photos, dash photo; check-out photos + dash photo after return) plus pending claims; due-soon and overdue reminders in-app and as phone notifications | `src/logic/tasks.ts`, `src/app/tasks.tsx`, `src/services/notifications.ts` |
 | PIN pad is the first screen; the PIN decides the person, the role, and which page opens (set per person in Team & PINs); app locks after 5 wrong tries (5 min, then 10, 20…) | `src/app/sign-in.tsx`, `src/logic/pin.ts` |
+| Tab bar (5 per role, Overview in the middle). Executive: Cars · Bookings · Overview · Money · More. Employee: Cars · Map · Overview · Hours · More. Other pages open from Overview and More | `src/app/(tabs)/_layout.tsx` |
 | All cars on one screen; one-tap lock, unlock always asks for the PIN | `src/app/(tabs)/index.tsx` |
 | Map + trip history (left/back times, distance, stops) | `src/app/(tabs)/map.tsx`, `src/app/car/[id].tsx` |
 | Auto-lock: home lot only, parked & unlocked for the set time; notifies + logs | `src/logic/autoLock.ts`, `src/logic/automation.ts` |
@@ -35,7 +38,7 @@ npx expo lint
 | Late-return alert (optional) | `src/logic/autoLock.ts` |
 | Send the check-in link in Turo: copies the ready-made message (editable in Settings) and opens Turo; "I sent it" logs it | `src/app/booking/[id].tsx`, `src/logic/checkInMessage.ts` |
 | Bookings (employees see trip times only, no money or guest details) | `src/app/(tabs)/bookings.tsx` |
-| Money tab (Executive only): month switcher; past months show total earned, future months show upcoming; stacked chart by type (trip earnings, incentives, reimbursements, claims); breakdown by type and by car; Turo payouts | `src/app/(tabs)/money.tsx`, `src/logic/money.ts`, `src/ui/EarningsChart.tsx` |
+| Money tab (Executive only): month switcher; past months show total earned, future months show upcoming; stacked chart by type; breakdown like Turo's earnings page: trip earnings, upcoming earnings, reimbursements (incl. claim payouts), incentives, missed earnings (not counted in totals); by car; Turo payouts | `src/app/(tabs)/money.tsx`, `src/logic/money.ts`, `src/ui/EarningsChart.tsx` |
 | Clock in/out; Executive sees everyone's hours | `src/app/(tabs)/hours.tsx` |
 | Activity log (person, guest link, auto-lock, system) | `src/app/activity.tsx` |
 | Executive settings: every number is adjustable | `src/app/settings.tsx` |
@@ -68,7 +71,7 @@ Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend
 2. **Smartcar**: connect each car; confirm all four models are supported.
 3. **Zubie**: confirm ZinC API access is in the plan; use its live location and parked/moving status.
 4. **Guest check-in web page** at a real address (replaces the `checkin.example.com` placeholder).
-5. **Gmail reader** for Turo emails: bookings, changes, cancellations, payouts ("payment sent"), incentives and claims, to fill in bookings and the Money tab.
+5. **Gmail reader** for Turo emails: bookings, changes, cancellations, payouts ("payment sent"), incentives, claims (become tasks), missed earnings, to fill in bookings and the Money tab.
 6. **Real home-lot outline.** The current one is a placeholder rectangle near LAX.
 
 ## Open questions (from the planning doc)

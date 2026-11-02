@@ -15,6 +15,22 @@ export default function MoreScreen() {
         <Title>{currentUser.name}</Title>
         <Muted>{isExec ? 'Executive' : 'Employee'}</Muted>
       </Card>
+      <SectionTitle>Go to</SectionTitle>
+      <Card style={{ paddingVertical: 2 }}>
+        <ListItem icon="grid" label="Overview" onPress={() => router.navigate('/')} />
+        <Divider />
+        <ListItem icon="checkbox" label="Tasks" sub="Check-in photos, licenses, claims" onPress={() => router.push('/tasks')} />
+        <Divider />
+        {isExec ? (
+          <>
+            <ListItem icon="map" label="Map" sub="Where every car is" onPress={() => router.navigate('/map')} />
+            <Divider />
+            <ListItem icon="time" label="Hours" sub="Clock in/out, everyone's hours" onPress={() => router.navigate('/hours')} />
+          </>
+        ) : (
+          <ListItem icon="calendar" label="Trips" sub="Upcoming trip times" onPress={() => router.navigate('/bookings')} />
+        )}
+      </Card>
       {isExec ? (
         <>
           <SectionTitle>Executive</SectionTitle>

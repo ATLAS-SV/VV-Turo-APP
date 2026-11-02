@@ -3,8 +3,6 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import {
   addMonths,
-  EARNING_LABELS,
-  EARNING_TYPES,
   earningItems,
   monthKey,
   monthLabel,
@@ -68,22 +66,17 @@ export default function MoneyScreen() {
 
       <SectionTitle>Breakdown</SectionTitle>
       <Card>
-        {EARNING_TYPES.map((t) => {
-          const v = sum.byType[t];
-          const total = v.earned + v.upcoming;
-          return (
-            <Row key={t} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
-              <Row style={{ flex: 1 }}>
-                <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: EARNING_COLORS[t] }} />
-                <Text style={{ color: colors.text, fontSize: 15 }}>{EARNING_LABELS[t]}</Text>
-              </Row>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{fmtMoney(total)}</Text>
-                {v.upcoming > 0 && v.earned > 0 ? <Muted style={{ fontSize: 12 }}>{fmtMoney(v.upcoming)} upcoming</Muted> : null}
-              </View>
-            </Row>
-          );
-        })}
+        <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} />
+        <BreakdownRow color={EARNING_COLORS.trip} faded label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} />
+        <BreakdownRow
+          color={EARNING_COLORS.reimbursement}
+          label="Reimbursements"
+          sub="Tolls, fuel, claim payouts"
+          value={sum.byType.reimbursement.earned + sum.byType.reimbursement.upcoming}
+        />
+        <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={sum.byType.incentive.earned + sum.byType.incentive.upcoming} />
+        <View style={{ height: 1, backgroundColor: colors.border }} />
+        <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the totals." value={sum.missed} muted />
       </Card>
 
       {Object.keys(sum.byCar).length ? (
@@ -123,6 +116,21 @@ export default function MoneyScreen() {
         </>
       ) : null}
     </Screen>
+  );
+}
+
+function BreakdownRow({ color, label, sub, value, faded, muted }: { color: string; label: string; sub: string; value: number; faded?: boolean; muted?: boolean }) {
+  return (
+    <Row style={{ justifyContent: 'space-between', paddingVertical: 3, alignItems: 'flex-start' }}>
+      <Row style={{ flex: 1, alignItems: 'flex-start' }}>
+        <View style={{ width: 12, height: 12, borderRadius: 3, marginTop: 4, backgroundColor: color, opacity: faded ? 0.38 : 1 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 15 }}>{label}</Text>
+          <Muted style={{ fontSize: 12 }}>{sub}</Muted>
+        </View>
+      </Row>
+      <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 15, fontWeight: '600' }}>{fmtMoney(value)}</Text>
+    </Row>
   );
 }
 

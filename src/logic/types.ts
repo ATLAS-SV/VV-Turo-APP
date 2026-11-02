@@ -15,10 +15,11 @@ export interface User {
   createdAt: string;
 }
 
-export type HomePage = 'cars' | 'map' | 'bookings' | 'money' | 'hours';
+export type HomePage = 'overview' | 'cars' | 'map' | 'bookings' | 'money' | 'hours';
 
 export function defaultHomePage(role: Role): HomePage {
-  return role === 'executive' ? 'cars' : 'hours';
+  void role; // Everyone starts on Overview unless set otherwise in Team & PINs.
+  return 'overview';
 }
 
 export interface LatLng {
@@ -105,7 +106,8 @@ export interface Booking {
   };
 }
 
-export type EarningType = 'trip' | 'incentive' | 'reimbursement' | 'claim';
+/** Missed = money that never reached you (e.g. canceled trips); shown but not counted in totals. */
+export type EarningType = 'trip' | 'incentive' | 'reimbursement' | 'missed';
 
 /** A money line, like a row on Turo's earnings page. */
 export interface EarningItem {
@@ -129,6 +131,27 @@ export interface Payout {
   source: 'turo_email' | 'pretend';
 }
 
+export type TaskKind =
+  | 'confirm_license'
+  | 'checkin_photos'
+  | 'checkin_dash_photo'
+  | 'checkout_photos'
+  | 'checkout_dash_photo'
+  | 'claim'
+  | 'custom';
+
+export interface Task {
+  id: string;
+  kind: TaskKind;
+  title: string;
+  detail?: string;
+  bookingId?: string;
+  carId?: string;
+  dueAt: string;
+  /** auto = made from a booking; turo_email = found in Gmail (e.g. claims). */
+  source: 'auto' | 'turo_email' | 'pretend' | 'manual';
+}
+
 export type ActivityAction =
   | 'lock'
   | 'unlock'
@@ -143,7 +166,10 @@ export type ActivityAction =
   | 'clock_out'
   | 'pin_lockout'
   | 'settings_changed'
-  | 'team_changed';
+  | 'team_changed'
+  | 'task_done'
+  | 'task_reminder'
+  | 'task_overdue';
 
 export type Actor =
   | { kind: 'user'; userId: string; name: string }
@@ -179,6 +205,14 @@ export interface Settings {
   employeeUnlockScope: 'all' | 'assigned';
   /** Ask for the PIN again after the app has been in the background this long. */
   appRelockMinutes: number;
+  /** Tasks: confirm license this long before trip start. */
+  licenseDueMinutesBefore: number;
+  /** Tasks: check-out photos due this long after trip end. */
+  checkoutPhotosDueMinutesAfter: number;
+  /** Tasks: remind this long before a task is due. */
+  taskReminderMinutes: number;
+  /** Tasks: also send reminders as phone notifications. */
+  taskPhoneNotifications: boolean;
   /** Message sent to guests in Turo with their check-in link. */
   checkInMessageTemplate: string;
   homeLot: Geofence;

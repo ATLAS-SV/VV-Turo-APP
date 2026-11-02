@@ -8,7 +8,7 @@ export const EARNING_COLORS: Record<EarningType, string> = {
   trip: '#5B3CB0',
   incentive: '#B8860B',
   reimbursement: '#0E8C7E',
-  claim: '#D9475F',
+  missed: '#D9475F',
 };
 
 const UPCOMING_OPACITY = 0.38;

@@ -1,6 +1,6 @@
 // Pretend data used until Smartcar, Zubie and the Gmail booking reader are connected.
 import { DEFAULT_CHECK_IN_TEMPLATE } from '../logic/checkInMessage';
-import type { Booking, Car, CarTelemetry, EarningItem, EarningType, Payout, Settings, Trip } from '../logic/types';
+import type { Booking, Car, CarTelemetry, EarningItem, EarningType, Payout, Settings, Task, Trip } from '../logic/types';
 
 const MIN = 60_000;
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -31,6 +31,10 @@ export const DEFAULT_SETTINGS: Settings = {
   employeeUnlockScope: 'all',
   appRelockMinutes: 5,
   checkInMessageTemplate: DEFAULT_CHECK_IN_TEMPLATE,
+  licenseDueMinutesBefore: 60,
+  checkoutPhotosDueMinutesAfter: 120,
+  taskReminderMinutes: 60,
+  taskPhoneNotifications: true,
   homeLot: PLACEHOLDER_HOME_LOT,
 };
 
@@ -105,6 +109,11 @@ function token() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
 }
 
+function tomorrowAt(now: number, hour: number) {
+  const d = new Date(now);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, hour).getTime();
+}
+
 export function seedBookings(now: number): Booking[] {
   const h = 60 * MIN;
   const base = { canceled: false, checkIn: { state: 'waiting' as const, unlockCount: 0, lastUnlockAt: null } };
@@ -113,7 +122,9 @@ export function seedBookings(now: number): Booking[] {
     { ...base, id: 'b1', reservationId: '48213377', carId: 'gv70', guestFirstName: 'Maria', guestPhone: '(310) 555-0142', tripStart: iso(now + 20 * MIN), tripEnd: iso(now + 3 * 24 * h), earnings: 412.5, checkInToken: token() },
     { ...base, id: 'b2', reservationId: '48190021', carId: 'bmw3', guestFirstName: 'Devin', guestPhone: '(424) 555-0199', tripStart: iso(now - 26 * h), tripEnd: iso(now + 22 * h), earnings: 186.0, checkInToken: token(), checkIn: { state: 'started', unlockCount: 1, lastUnlockAt: iso(now - 26 * h) } },
     { ...base, id: 'b3', reservationId: '48155902', carId: 'rogue', guestFirstName: 'Priya', guestPhone: '(213) 555-0175', tripStart: iso(now - 52 * h), tripEnd: iso(now - 90 * MIN), earnings: 139.75, checkInToken: token(), checkIn: { state: 'started', unlockCount: 1, lastUnlockAt: iso(now - 52 * h) } },
-    { ...base, id: 'b4', reservationId: '48240388', carId: 'tx', guestFirstName: 'James', guestPhone: '(562) 555-0110', tripStart: iso(now + 2 * 24 * h), tripEnd: iso(now + 5 * 24 * h), earnings: 655.0, checkInToken: token() },
+    { ...base, id: 'b4', reservationId: '48240388', carId: 'tx', guestFirstName: 'James', guestPhone: '(562) 555-0110', tripStart: iso(now + 3 * 24 * h), tripEnd: iso(now + 5 * 24 * h), earnings: 655.0, checkInToken: token() },
+    // Going out tomorrow at 10:00.
+    { ...base, id: 'b6', reservationId: '48262540', carId: 'tx', guestFirstName: 'Sam', guestPhone: '(310) 555-0188', tripStart: iso(tomorrowAt(now, 10)), tripEnd: iso(tomorrowAt(now, 10) + 30 * h), earnings: 248.0, checkInToken: token() },
     { ...base, id: 'b5', reservationId: '48251174', carId: 'rogue', guestFirstName: 'Alex', tripStart: iso(now + 4 * 24 * h), tripEnd: iso(now + 6 * 24 * h), earnings: 201.4, checkInToken: token(), canceled: true, checkIn: { state: 'expired', unlockCount: 0, lastUnlockAt: null } },
   ];
 }
@@ -155,8 +166,14 @@ export function seedMoney(now: number): { extras: EarningItem[]; payouts: Payout
     }
     if (m <= 0 && rand() < 0.7) add('incentive', [25, 50, 75][Math.floor(rand() * 3)], from + 20 * day, 'Host bonus');
   }
-  add('claim', 650, startOfMonth(-2) + 12 * day, 'Damage claim: rear bumper', 'bmw3');
-  add('claim', 180, startOfMonth(-4) + 6 * day, 'Cleaning / smoking claim', 'rogue');
+  // Claim payouts count as reimbursements (as on Turo's earnings page).
+  add('reimbursement', 650, startOfMonth(-2) + 12 * day, 'Claim reimbursement: rear bumper', 'bmw3');
+  add('reimbursement', 180, startOfMonth(-4) + 6 * day, 'Claim reimbursement: cleaning / smoking', 'rogue');
+  // Missed earnings: guest cancellations and other money that never came in.
+  for (let m = -6; m <= 0; m++) {
+    if (rand() < 0.6) add('missed', 120 + rand() * 260, startOfMonth(m) + (5 + rand() * 20) * day, 'Guest canceled', carIds[Math.floor(rand() * carIds.length)]);
+    if (rand() < 0.4) add('missed', 15 + rand() * 40, startOfMonth(m) + (5 + rand() * 20) * day, 'Unbilled tolls', carIds[Math.floor(rand() * carIds.length)]);
+  }
 
   // Turo pays out a few days after earnings: one payout each Friday for the previous week's items.
   const payouts: Payout[] = [];
@@ -169,4 +186,36 @@ export function seedMoney(now: number): { extras: EarningItem[]; payouts: Payout
     if (sum > 0) payouts.push({ id: `pay${t}`, sentAt: iso(t + 10 * 60 * MIN), amount: Math.round(sum * 100) / 100, method: 'Bank transfer', source: 'pretend' });
   }
   return { extras, payouts };
+}
+
+// ---------- pretend tasks (until claims are read from Turo emails in Gmail) ----------
+
+export function seedTasks(now: number): { extra: Task[]; done: Record<string, { at: string; by: string }> } {
+  const day = 24 * 60 * MIN;
+  const extra: Task[] = [
+    {
+      id: 'claim-bmw3-bumper',
+      kind: 'claim',
+      title: 'Pending claim: reply to Turo claims team',
+      detail: 'BMW 3 Series rear bumper. Turo asked for repair estimate and photos.',
+      carId: 'bmw3',
+      dueAt: iso(now + 2 * day),
+      source: 'pretend',
+    },
+    {
+      id: 'claim-rogue-cleaning',
+      kind: 'claim',
+      title: 'Pending claim: upload cleaning receipt',
+      detail: 'Nissan Rogue smoking/cleaning fee. Waiting on your receipt.',
+      carId: 'rogue',
+      dueAt: iso(now + 5 * day),
+      source: 'pretend',
+    },
+  ];
+  // Trips already under way: their check-in tasks were done.
+  const done: Record<string, { at: string; by: string }> = {};
+  for (const b of ['b2', 'b3']) {
+    for (const k of ['confirm_license', 'checkin_photos', 'checkin_dash_photo']) done[`${b}:${k}`] = { at: iso(now - 2 * day), by: 'Sebastian' };
+  }
+  return { extra, done };
 }

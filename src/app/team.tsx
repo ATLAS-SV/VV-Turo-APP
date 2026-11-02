@@ -5,6 +5,7 @@ import { carName, useStore } from '../state/AppStore';
 import { Button, Card, Chip, colors, Muted, Row, Screen, SectionTitle, Title } from '../ui/components';
 
 const HOME_PAGES: { key: HomePage; label: string }[] = [
+  { key: 'overview', label: 'Overview' },
   { key: 'cars', label: 'Cars' },
   { key: 'map', label: 'Map' },
   { key: 'bookings', label: 'Bookings' },

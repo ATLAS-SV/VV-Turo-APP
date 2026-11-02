@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { DEFAULT_SETTINGS, SEED_CARS, seedBookings, seedMoney } from '../data/seed';
+import { DEFAULT_SETTINGS, SEED_CARS, seedBookings, seedMoney, seedTasks } from '../data/seed';
+import { allTasks, canSeeTask, type TaskDoneMap, type TaskWithState } from '../logic/tasks';
+import { syncTaskNotifications } from '../services/notifications';
 import { planAutomation } from '../logic/automation';
 import { evaluateCheckIn, REFUSAL_MESSAGES } from '../logic/guestCheckIn';
 import { canUnlockCar } from '../logic/permissions';
@@ -22,6 +24,7 @@ import type {
   Role,
   Settings,
   Shift,
+  Task,
   Trip,
   User,
 } from '../logic/types';
@@ -42,6 +45,11 @@ interface Persisted {
   /** Money lines that aren't a booking's trip earnings (incentives, claims, reimbursements, past trips). */
   earningExtras: EarningItem[];
   payouts: Payout[];
+  /** Tasks not tied to a booking checklist, e.g. pending claims from Turo emails. */
+  extraTasks: Task[];
+  taskDone: TaskDoneMap;
+  /** Reminders already shown, as "taskId:soon" / "taskId:overdue". */
+  taskAlertsSent: string[];
   mockTelemetry: CarTelemetry[] | null;
   mockTrips: Trip[] | null;
 }
@@ -81,7 +89,11 @@ async function findUserByPin(users: User[], pin: string): Promise<User | undefin
 
 function initialPersisted(): Persisted {
   const money = seedMoney(Date.now());
+  const tasks = seedTasks(Date.now());
   return {
+    extraTasks: tasks.extra,
+    taskDone: tasks.done,
+    taskAlertsSent: [],
     earningExtras: money.extras,
     payouts: money.payouts,
     users: [],
@@ -145,6 +157,9 @@ function useAppStoreValue() {
       pinLockout: state.pinLockout,
       lateAlertsSent: state.lateAlertsSent,
       earningExtras: state.earningExtras,
+      extraTasks: state.extraTasks,
+      taskDone: state.taskDone,
+      taskAlertsSent: state.taskAlertsSent.slice(-500),
       payouts: state.payouts,
       mockTelemetry: fleet.telemetry,
       mockTrips: fleet.trips,
@@ -255,6 +270,27 @@ function useAppStoreValue() {
           }
         }
       }
+      // Task reminders: "due soon" heads-up and "overdue" alert, once each.
+      const st = ref.current;
+      const tasks = allTasks(st.bookings, st.extraTasks, st.taskDone, st.settings, new Date());
+      const newlySent: string[] = [];
+      for (const t of tasks) {
+        if (t.status !== 'due_soon' && t.status !== 'overdue') continue;
+        const key = `${t.id}:${t.status === 'overdue' ? 'overdue' : 'soon'}`;
+        if (st.taskAlertsSent.includes(key)) continue;
+        // Don't nag about things that were already overdue for over a day before the app saw them.
+        if (t.status === 'overdue' && Date.now() - Date.parse(t.dueAt) > 24 * 3600_000) {
+          newlySent.push(key);
+          continue;
+        }
+        newlySent.push(key);
+        log(t.status === 'overdue' ? 'task_overdue' : 'task_reminder', { kind: 'system' }, {
+          carId: t.carId,
+          detail: describeTask(t, st.bookings, st.cars, true),
+          notify: true,
+        });
+      }
+      if (newlySent.length) update((x) => ({ ...x, taskAlertsSent: [...x.taskAlertsSent, ...newlySent] }));
       if (actions.length) await refreshTelemetry();
     } finally {
       running.current = false;
@@ -267,6 +303,18 @@ function useAppStoreValue() {
     const t = setInterval(runAutomation, AUTOMATION_INTERVAL_MS);
     return () => clearInterval(t);
   }, [state.loaded, runAutomation]);
+
+  // ---------- phone reminders for tasks ----------
+  const isExecSignedIn = state.users.find((u) => u.id === state.currentUserId)?.role === 'executive';
+  useEffect(() => {
+    if (!state.loaded || !isExecSignedIn) return;
+    const t = setTimeout(() => {
+      const s = ref.current;
+      const tasks = allTasks(s.bookings, s.extraTasks, s.taskDone, s.settings, new Date());
+      syncTaskNotifications(tasks, s.settings, (x) => describeTask(x, s.bookings, s.cars, true));
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [state.loaded, isExecSignedIn, state.bookings, state.extraTasks, state.taskDone, state.settings]);
 
   // ---------- re-ask for PIN after time in background ----------
   useEffect(() => {
@@ -493,6 +541,25 @@ function useAppStoreValue() {
     [update],
   );
 
+  const completeTask = useCallback(
+    (taskId: string, done: boolean) => {
+      const s = ref.current;
+      const user = s.users.find((u) => u.id === s.currentUserId);
+      if (!user) return;
+      update((x) => {
+        const taskDone = { ...x.taskDone };
+        if (done) taskDone[taskId] = { at: new Date().toISOString(), by: user.name };
+        else delete taskDone[taskId];
+        return { ...x, taskDone };
+      });
+      if (done) {
+        const t = allTasks(s.bookings, s.extraTasks, s.taskDone, s.settings, new Date()).find((x) => x.id === taskId);
+        if (t) log('task_done', actorFor(user), { carId: t.carId, detail: describeTask(t, s.bookings, s.cars, true) });
+      }
+    },
+    [update, log],
+  );
+
   const setHomePage = useCallback(
     (userId: string, homePage: HomePage) => {
       if (!requireExec()) return;
@@ -577,7 +644,7 @@ function useAppStoreValue() {
     if (!requireExec()) return;
     const fresh = initialPersisted();
     mockFleet.load(null, null);
-    update((s) => ({ ...s, bookings: fresh.bookings, cars: fresh.cars, earningExtras: fresh.earningExtras, payouts: fresh.payouts, activity: [], lateAlertsSent: [], toasts: [] }));
+    update((s) => ({ ...s, bookings: fresh.bookings, cars: fresh.cars, earningExtras: fresh.earningExtras, payouts: fresh.payouts, extraTasks: fresh.extraTasks, taskDone: fresh.taskDone, taskAlertsSent: [], activity: [], lateAlertsSent: [], toasts: [] }));
     runAutomation();
   }, [update, runAutomation]);
 
@@ -601,6 +668,7 @@ function useAppStoreValue() {
     removeUser,
     setAssignedCars,
     setHomePage,
+    completeTask,
     saveCar,
     getTrips: (carId: string) => tracker.getTrips(carId),
     markLinkSent,
@@ -657,6 +725,9 @@ export const ACTION_LABELS: Record<ActivityAction, string> = {
   pin_lockout: 'App locked (wrong PINs)',
   settings_changed: 'Settings changed',
   team_changed: 'Team changed',
+  task_done: 'Task done',
+  task_reminder: 'Task due soon',
+  task_overdue: 'Task overdue',
 };
 
 export function actorLabel(a: Actor, action?: ActivityAction) {
@@ -668,4 +739,20 @@ export function actorLabel(a: Actor, action?: ActivityAction) {
 export function describeEntry(e: ActivityEntry, cars: Car[]) {
   const car = e.carId ? ` · ${carName(cars.find((c) => c.id === e.carId))}` : '';
   return `${ACTION_LABELS[e.action]}${car}${e.detail ? ` — ${e.detail}` : ''}`;
+}
+
+/** "Confirm guest’s license · Maria · 2026 Genesis GV70" (guest name only for Executives). */
+export function describeTask(t: TaskWithState | Task, bookings: Booking[], cars: Car[], showGuest: boolean) {
+  const b = t.bookingId ? bookings.find((x) => x.id === t.bookingId) : undefined;
+  const parts = [t.title];
+  if (b && showGuest) parts.push(b.guestFirstName);
+  if (t.carId) parts.push(carName(cars.find((c) => c.id === t.carId)));
+  return parts.join(' · ');
+}
+
+export function useTasks() {
+  const s = useStore();
+  const now = useNow(30_000);
+  const isExec = s.currentUser?.role === 'executive';
+  return allTasks(s.bookings, s.extraTasks, s.taskDone, s.settings, now).filter((t) => canSeeTask(t, isExec));
 }

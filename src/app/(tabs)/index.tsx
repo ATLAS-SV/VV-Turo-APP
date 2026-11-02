@@ -1,107 +1,310 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { nextBookingForCar } from '../../logic/bookings';
-import { distanceMeters, formatDistance, isInLot, polygonCenter } from '../../logic/geo';
-import { canUnlockCar } from '../../logic/permissions';
-import { carName, useNow, useStore } from '../../state/AppStore';
-import { Button, Card, Chip, colors, fmtAgo, fmtTime, LockChip, Muted, Row, Title } from '../../ui/components';
-import { UnlockPrompt } from '../../ui/UnlockPrompt';
+import { Ionicons } from '@expo/vector-icons';
+import { router, type Href } from 'expo-router';
+import { useMemo, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { bookingStatus, pickupsOn, returnsOn, tomorrow } from '../../logic/bookings';
+import { isInLot } from '../../logic/geo';
+import { formatMinutes, openShift, shiftMinutes } from '../../logic/hours';
+import { earningItems, monthKey, monthLabel, summarizeMonth } from '../../logic/money';
+import { can } from '../../logic/permissions';
+import type { Booking } from '../../logic/types';
+import { ACTION_LABELS, actorLabel, carName, useNow, useStore, useTasks } from '../../state/AppStore';
+import { TaskRow } from '../../ui/TaskRow';
+import { Button, Chip, colors, fmtAgo, fmtClock, fmtMoney, fmtTime, type IconName, LockChip, Muted, Row, Screen } from '../../ui/components';
 
-/** Every car on one screen with lock status. One-tap lock; unlock asks for your PIN. */
-export default function CarsScreen() {
+/** Master page: a little of everything. Tap any card to open that part of the app. */
+export default function OverviewScreen() {
   const store = useStore();
-  const { cars, telemetry, settings, bookings, busyCars, currentUser, lockCar, refresh } = store;
+  const { currentUser, cars, telemetry, settings, bookings, activity, shifts, earningExtras, payouts, toggleClock } = store;
   const now = useNow(30_000);
-  const insets = useSafeAreaInsets();
-  const [unlocking, setUnlocking] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const lotCenter = polygonCenter(settings.homeLot.polygon);
+  const items = useMemo(() => earningItems(bookings, earningExtras), [bookings, earningExtras]);
+  const tasks = useTasks();
+  if (!currentUser) return null;
 
-  const unlockedCount = cars.filter((c) => telemetry[c.id]?.lockState === 'unlocked').length;
+  const isExec = currentUser.role === 'executive';
+  const showMoney = can(currentUser, 'viewEarnings');
+  const showGuest = can(currentUser, 'viewGuestDetails');
+
+  // Fleet
+  const unlocked = cars.filter((c) => telemetry[c.id]?.lockState === 'unlocked');
+  const inLot = cars.filter((c) => telemetry[c.id] && isInLot(telemetry[c.id].position, settings.homeLot));
+  const driving = cars.filter((c) => telemetry[c.id]?.moving);
+
+  // Schedule: cars going out today and tomorrow
+  const todayOut = pickupsOn(bookings, now);
+  const todayBack = returnsOn(bookings, now).filter((b) => Date.parse(b.tripEnd) >= now.getTime());
+  const tomorrowOut = pickupsOn(bookings, tomorrow(now));
+
+  // Tasks: overdue first, then anything due within the next day
+  const openTasks = tasks.filter((t) => !t.doneAt);
+  const overdueCount = openTasks.filter((t) => t.status === 'overdue').length;
+  const focusTasks = openTasks.filter((t) => Date.parse(t.dueAt) - now.getTime() < 24 * 3600_000).slice(0, 5);
+
+  // Needs attention
+  const attention: { icon: IconName; text: string; to: Href }[] = [];
+  for (const c of unlocked) {
+    const t = telemetry[c.id];
+    attention.push({ icon: 'lock-open', text: `${carName(c)} is unlocked${t && isInLot(t.position, settings.homeLot) ? ' in the lot' : ''}`, to: `/car/${c.id}` });
+  }
+  if (showGuest) {
+    for (const b of bookings) {
+      const status = bookingStatus(b, now);
+      if (b.checkIn.state === 'unlocked') attention.push({ icon: 'timer', text: `${b.guestFirstName}'s car is unlocked, countdown running`, to: `/booking/${b.id}` });
+      else if (status === 'upcoming' && b.checkIn.state === 'waiting' && !b.linkSentAt && Date.parse(b.tripStart) - now.getTime() < 48 * 3600_000)
+        attention.push({ icon: 'paper-plane', text: `Check-in link not sent to ${b.guestFirstName} yet`, to: `/booking/${b.id}` });
+    }
+    const lateAlerts = activity.filter((a) => a.action === 'late_return' && now.getTime() - Date.parse(a.at) < 24 * 3600_000);
+    for (const a of lateAlerts.slice(0, 2)) attention.push({ icon: 'warning', text: a.detail ?? 'Late return', to: '/activity' });
+  }
+
+  // Money
+  const month = monthKey(now);
+  const money = showMoney ? summarizeMonth(items, payouts, month, now) : null;
+  const lastPayout = showMoney ? [...payouts].sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0] : undefined;
+
+  // Hours
+  const open = openShift(shifts, currentUser.id);
+  const clockedIn = isExec ? store.users.filter((u) => openShift(shifts, u.id)) : [];
+
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <>
-      <ScrollView
-        style={{ flex: 1, backgroundColor: colors.bg }}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await refresh();
-              setRefreshing(false);
-            }}
-          />
-        }
-      >
-        <Muted>
-          {cars.length} cars · {unlockedCount ? `${unlockedCount} unlocked` : 'all locked'} · Pretend data until Smartcar & Zubie are connected
-        </Muted>
-        {cars.map((car) => {
-          const t = telemetry[car.id];
-          const busy = busyCars[car.id];
-          const inLot = t ? isInLot(t.position, settings.homeLot) : false;
-          const next = nextBookingForCar(bookings, car.id, now);
-          const allowedUnlock = canUnlockCar(currentUser, car.id, settings);
-          return (
-            <Card key={car.id} onPress={() => router.push(`/car/${car.id}`)}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Row style={{ flex: 1 }}>
-                  <View style={{ width: 10, height: 36, borderRadius: 3, backgroundColor: car.color ?? colors.muted }} />
-                  <View style={{ flex: 1 }}>
-                    <Title>{carName(car)}</Title>
-                    <Muted>
-                      {!t
-                        ? 'No location yet'
-                        : inLot
-                          ? `In ${settings.homeLot.name}`
-                          : `${formatDistance(distanceMeters(t.position, lotCenter))} from ${settings.homeLot.name}`}
-                      {t ? ` · ${t.moving ? 'Driving' : `Parked ${fmtAgo(t.parkedSince, now)}`}` : ''}
-                    </Muted>
-                  </View>
-                </Row>
-                <LockChip state={t?.lockState} />
-              </Row>
-              {next ? (
-                <Row>
-                  <Chip
-                    tone="info"
-                    icon="calendar"
-                    label={
-                      Date.parse(next.tripStart) <= now.getTime()
-                        ? `On trip until ${fmtTime(next.tripEnd)}`
-                        : `Next pickup ${fmtTime(next.tripStart)}`
-                    }
-                  />
-                </Row>
-              ) : null}
-              <Row>
-                <Button
-                  style={{ flex: 1 }}
-                  variant="secondary"
-                  icon="lock-closed"
-                  label="Lock"
-                  busy={busy === 'locking'}
-                  disabled={!!busy}
-                  onPress={() => lockCar(car.id)}
-                />
-                <Button
-                  style={{ flex: 1 }}
-                  icon="lock-open"
-                  label={allowedUnlock ? 'Unlock' : 'Not assigned'}
-                  busy={busy === 'unlocking'}
-                  disabled={!!busy || !allowedUnlock}
-                  onPress={() => setUnlocking(car.id)}
-                />
-              </Row>
-            </Card>
-          );
-        })}
-      </ScrollView>
-      <UnlockPrompt carId={unlocking} onClose={() => setUnlocking(null)} />
-    </>
+    <Screen>
+      <View>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>
+          {greeting}, {currentUser.name}
+        </Text>
+        <Muted>{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Muted>
+      </View>
+
+      {attention.length ? (
+        <Tile icon="alert-circle" title="Needs attention" tone="warn">
+          {attention.slice(0, 5).map((a, i) => (
+            <Pressable key={i} onPress={() => router.push(a.to)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
+              <Ionicons name={a.icon} size={16} color={colors.unlocked} />
+              <Text style={{ flex: 1, color: colors.text, fontSize: 14 }}>{a.text}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+            </Pressable>
+          ))}
+        </Tile>
+      ) : (
+        <Tile icon="checkmark-circle" title="All good" tone="good">
+          <Muted>All cars locked. Nothing needs you right now.</Muted>
+        </Tile>
+      )}
+
+      <Tile icon="checkbox" title={`Tasks${openTasks.length ? ` · ${openTasks.length} open` : ''}`} onPress={() => router.push('/tasks')} action="All tasks" headerLinkOnly>
+        {overdueCount ? (
+          <Text style={{ color: colors.danger, fontWeight: '700', fontSize: 13 }}>
+            {overdueCount} overdue
+          </Text>
+        ) : null}
+        {focusTasks.length ? (
+          focusTasks.map((t) => <TaskRow key={t.id} t={t} now={now} />)
+        ) : (
+          <Muted>Nothing due in the next day.</Muted>
+        )}
+      </Tile>
+
+      <Tile icon="car-sport" title="Fleet" onPress={() => router.push('/cars')} action="Cars">
+        <Row style={{ gap: 14 }}>
+          <Big n={cars.length - unlocked.length} label="locked" />
+          <Big n={unlocked.length} label="unlocked" warn={unlocked.length > 0} />
+          <Big n={inLot.length} label="in lot" />
+          <Big n={driving.length} label="driving" />
+        </Row>
+        {cars.map((c) => (
+          <Row key={c.id} style={{ justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.text, fontSize: 14, flex: 1 }} numberOfLines={1}>
+              {carName(c)}
+            </Text>
+            <LockChip state={telemetry[c.id]?.lockState} />
+          </Row>
+        ))}
+      </Tile>
+
+      <Row style={{ alignItems: 'stretch' }}>
+        <View style={{ flex: 1 }}>
+          <Tile icon="map" title="Map" onPress={() => router.push('/map')} compact>
+            <Muted>
+              {inLot.length} at {settings.homeLot.name}
+              {'\n'}
+              {cars.length - inLot.length} out
+            </Muted>
+          </Tile>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Tile icon="time" title="Hours" onPress={() => router.push('/hours')} compact headerLinkOnly>
+            <Muted>{open ? `On the clock · ${formatMinutes(shiftMinutes(open, now))}` : 'Off the clock'}</Muted>
+            {isExec && clockedIn.length ? <Muted>{clockedIn.map((u) => u.name).join(', ')} clocked in</Muted> : null}
+            <Button
+              label={open ? 'Clock out' : 'Clock in'}
+              variant={open ? 'danger' : 'secondary'}
+              onPress={toggleClock}
+              style={{ paddingVertical: 6, minHeight: 34 }}
+            />
+          </Tile>
+        </View>
+      </Row>
+
+      <Tile icon="today" title="Going out today" onPress={() => router.push('/bookings')} action={isExec ? 'Bookings' : 'Trips'} headerLinkOnly>
+        {todayOut.length ? (
+          todayOut.map((b) => <PickupRow key={b.id} b={b} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} now={now} />)
+        ) : (
+          <Muted>No cars going out today.</Muted>
+        )}
+        {todayBack.length ? (
+          <Muted style={{ fontSize: 13 }}>
+            Coming back today: {todayBack.map((b) => `${carName(cars.find((c) => c.id === b.carId))} (${fmtClock(b.tripEnd)})`).join(', ')}
+          </Muted>
+        ) : null}
+      </Tile>
+
+      <Tile icon="calendar" title="Going out tomorrow" onPress={() => router.push('/bookings')} action="Schedule" headerLinkOnly>
+        {tomorrowOut.length ? (
+          tomorrowOut.map((b) => <PickupRow key={b.id} b={b} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} now={now} />)
+        ) : (
+          <Muted>No cars going out tomorrow.</Muted>
+        )}
+      </Tile>
+
+      {money ? (
+        <Tile icon="cash" title={`Money · ${monthLabel(month)}`} onPress={() => router.push('/money')} action="Money">
+          <Row style={{ gap: 18 }}>
+            <View>
+              <Muted style={{ fontSize: 13 }}>Earned so far</Muted>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{fmtMoney(money.earned)}</Text>
+            </View>
+            <View>
+              <Muted style={{ fontSize: 13 }}>Upcoming</Muted>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{fmtMoney(money.upcoming)}</Text>
+            </View>
+          </Row>
+          {lastPayout ? <Muted>Last Turo payout: {fmtMoney(lastPayout.amount)} on {fmtTime(lastPayout.sentAt)}</Muted> : null}
+        </Tile>
+      ) : null}
+
+      {can(currentUser, 'viewActivityLog') ? (
+        <Tile icon="list" title="Recent activity" onPress={() => router.push('/activity')} action="Log">
+          {activity.slice(0, 4).map((a) => (
+            <View key={a.id}>
+              <Text style={{ color: colors.text, fontSize: 14 }} numberOfLines={1}>
+                {ACTION_LABELS[a.action]}
+                {a.carId ? ` · ${carName(cars.find((c) => c.id === a.carId))}` : ''}
+              </Text>
+              <Muted style={{ fontSize: 12 }}>
+                {actorLabel(a.actor, a.action)} · {fmtAgo(a.at, now)}
+              </Muted>
+            </View>
+          ))}
+          {!activity.length ? <Muted>Nothing yet.</Muted> : null}
+        </Tile>
+      ) : null}
+    </Screen>
+  );
+}
+
+function Tile({
+  icon,
+  title,
+  children,
+  onPress,
+  action,
+  tone,
+  compact,
+  headerLinkOnly,
+}: {
+  icon: IconName;
+  title: string;
+  children: ReactNode;
+  onPress?: () => void;
+  action?: string;
+  tone?: 'warn' | 'good';
+  compact?: boolean;
+  /** Card has its own buttons inside: only the header opens the page (no button-inside-button). */
+  headerLinkOnly?: boolean;
+}) {
+  const accent = tone === 'warn' ? colors.unlocked : tone === 'good' ? colors.locked : colors.primary;
+  const bg = tone === 'warn' ? colors.unlockedBg : tone === 'good' ? colors.lockedBg : colors.card;
+  const header = (
+    <Row style={{ justifyContent: 'space-between' }}>
+      <Row>
+        <Ionicons name={icon} size={18} color={accent} />
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{title}</Text>
+      </Row>
+      {onPress ? (
+        <Row style={{ gap: 2 }}>
+          {action ? <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{action}</Text> : null}
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </Row>
+      ) : null}
+    </Row>
+  );
+  // Only the side-by-side compact cards stretch; full-width cards size to their content.
+  const box = { backgroundColor: bg, borderRadius: 14, padding: compact ? 12 : 14, gap: 8, borderWidth: 1, borderColor: colors.border, ...(compact ? { flex: 1 } : {}) };
+  const label = `Open ${title}`;
+  if (!onPress) {
+    return (
+      <View style={box}>
+        {header}
+        {children}
+      </View>
+    );
+  }
+  if (headerLinkOnly) {
+    return (
+      <View style={box}>
+        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={8}>
+          {header}
+        </Pressable>
+        {children}
+      </View>
+    );
+  }
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [box, { opacity: pressed ? 0.85 : 1 }]}>
+      {header}
+      {children}
+    </Pressable>
+  );
+}
+
+/** One car going out: time, car, guest (Executive), and where the pickup stands. */
+function PickupRow({ b, showGuest, carLabel, now }: { b: Booking; showGuest: boolean; carLabel: string; now: Date }) {
+  const status =
+    b.checkIn.state === 'started'
+      ? { label: 'Picked up', tone: 'good' as const }
+      : b.checkIn.state === 'unlocked'
+        ? { label: 'Guest unlocked', tone: 'warn' as const }
+        : Date.parse(b.tripStart) < now.getTime()
+          ? { label: 'Not picked up', tone: 'bad' as const }
+          : showGuest
+            ? b.linkSentAt
+              ? { label: 'Link sent', tone: 'info' as const }
+              : { label: 'Link not sent', tone: 'warn' as const }
+            : { label: 'Scheduled', tone: 'neutral' as const };
+  const row = (
+    <Row style={{ justifyContent: 'space-between', paddingVertical: 2 }}>
+      <Text style={{ width: 70, fontWeight: '700', color: colors.text, fontSize: 14 }}>{fmtClock(b.tripStart)}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.text, fontSize: 14 }} numberOfLines={1}>
+          {carLabel}
+        </Text>
+        {showGuest ? <Muted style={{ fontSize: 12 }}>{b.guestFirstName}</Muted> : null}
+      </View>
+      <Chip label={status.label} tone={status.tone} />
+    </Row>
+  );
+  if (!showGuest) return row;
+  return <Pressable onPress={() => router.push(`/booking/${b.id}`)}>{row}</Pressable>;
+}
+
+function Big({ n, label, warn }: { n: number; label: string; warn?: boolean }) {
+  return (
+    <View>
+      <Text style={{ fontSize: 22, fontWeight: '800', color: warn ? colors.unlocked : colors.text }}>{n}</Text>
+      <Muted style={{ fontSize: 12 }}>{label}</Muted>
+    </View>
   );
 }

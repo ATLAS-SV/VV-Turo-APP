@@ -25,6 +25,7 @@ function RootStack() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="car/[id]" options={{ title: 'Car' }} />
           <Stack.Screen name="booking/[id]" options={{ title: 'Booking' }} />
+          <Stack.Screen name="tasks" options={{ title: 'Tasks' }} />
           <Stack.Protected guard={isExec}>
             <Stack.Screen name="activity" options={{ title: 'Activity log' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />

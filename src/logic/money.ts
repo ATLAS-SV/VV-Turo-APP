@@ -1,12 +1,13 @@
 import type { Booking, EarningItem, EarningType, Payout } from './types';
 
-export const EARNING_TYPES: EarningType[] = ['trip', 'incentive', 'reimbursement', 'claim'];
+/** Types that count toward earnings (money that reaches the account). Missed earnings are tracked separately. */
+export const EARNING_TYPES: EarningType[] = ['trip', 'incentive', 'reimbursement'];
 
 export const EARNING_LABELS: Record<EarningType, string> = {
   trip: 'Trip earnings',
-  incentive: 'Incentives & bonuses',
+  incentive: 'Incentives',
   reimbursement: 'Reimbursements',
-  claim: 'Claims',
+  missed: 'Missed earnings',
 };
 
 /** "YYYY-MM" in local time. */
@@ -27,20 +28,19 @@ export function monthLabel(ym: string, style: 'long' | 'short' = 'long'): string
     : d.toLocaleDateString(undefined, { month: 'short' });
 }
 
-/** All money items: each non-canceled booking's trip earnings (counted on the trip end date) plus extras. */
+/** All money items: each booking's trip earnings (counted on the trip end date) plus extras. */
 export function earningItems(bookings: Booking[], extras: EarningItem[]): EarningItem[] {
-  const fromBookings: EarningItem[] = bookings
-    .filter((b) => !b.canceled)
-    .map((b) => ({
-      id: `booking-${b.id}`,
-      type: 'trip',
-      amount: b.earnings,
-      date: b.tripEnd,
-      carId: b.carId,
-      reservationId: b.reservationId,
-      description: `${b.guestFirstName}'s trip`,
-      source: 'booking',
-    }));
+  // Canceled bookings become missed earnings, counted on the trip start date.
+  const fromBookings: EarningItem[] = bookings.map((b) => ({
+    id: `booking-${b.id}`,
+    type: b.canceled ? 'missed' : 'trip',
+    amount: b.earnings,
+    date: b.canceled ? b.tripStart : b.tripEnd,
+    carId: b.carId,
+    reservationId: b.reservationId,
+    description: b.canceled ? `${b.guestFirstName}'s trip (canceled)` : `${b.guestFirstName}'s trip`,
+    source: 'booking',
+  }));
   return [...fromBookings, ...extras];
 }
 
@@ -50,7 +50,7 @@ const emptyTotals = (): TypeTotals => ({
   trip: { earned: 0, upcoming: 0 },
   incentive: { earned: 0, upcoming: 0 },
   reimbursement: { earned: 0, upcoming: 0 },
-  claim: { earned: 0, upcoming: 0 },
+  missed: { earned: 0, upcoming: 0 },
 });
 
 export interface MonthSummary {
@@ -59,6 +59,8 @@ export interface MonthSummary {
   upcoming: number;
   byType: TypeTotals;
   byCar: Record<string, number>;
+  /** Money that never reached you this month (canceled trips etc.). Not included in earned/upcoming. */
+  missed: number;
   tripCount: number;
   payouts: Payout[];
   paidOut: number;
@@ -75,6 +77,7 @@ export function summarizeMonth(items: EarningItem[], payouts: Payout[], month: s
     if (monthKey(new Date(it.date)) !== month) continue;
     const bucket = Date.parse(it.date) <= now.getTime() ? 'earned' : 'upcoming';
     byType[it.type][bucket] = round(byType[it.type][bucket] + it.amount);
+    if (it.type === 'missed') continue; // shown on its own, not part of earnings
     if (it.carId) byCar[it.carId] = round((byCar[it.carId] ?? 0) + it.amount);
     if (it.type === 'trip') tripCount++;
   }
@@ -87,6 +90,7 @@ export function summarizeMonth(items: EarningItem[], payouts: Payout[], month: s
     upcoming: round(EARNING_TYPES.reduce((s, t) => s + byType[t].upcoming, 0)),
     byType,
     byCar,
+    missed: round(byType.missed.earned + byType.missed.upcoming),
     tripCount,
     payouts: monthPayouts,
     paidOut: round(monthPayouts.reduce((s, p) => s + p.amount, 0)),

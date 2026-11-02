@@ -20,12 +20,15 @@ const ICONS: Record<ActivityAction, IconName> = {
   pin_lockout: 'key',
   settings_changed: 'options',
   team_changed: 'people',
+  task_done: 'checkbox',
+  task_reminder: 'alarm',
+  task_overdue: 'alarm',
 };
 
 const FILTERS: { key: string; label: string; match: (a: ActivityAction) => boolean }[] = [
   { key: 'all', label: 'All', match: () => true },
   { key: 'locks', label: 'Locks', match: (a) => ['lock', 'unlock', 'auto_lock', 'guest_unlock', 'guest_relock'].includes(a) },
-  { key: 'alerts', label: 'Alerts', match: (a) => ['guest_failed', 'late_return', 'pin_lockout'].includes(a) },
+  { key: 'alerts', label: 'Alerts', match: (a) => ['guest_failed', 'late_return', 'pin_lockout', 'task_overdue', 'task_reminder'].includes(a) },
   { key: 'hours', label: 'Hours', match: (a) => a === 'clock_in' || a === 'clock_out' },
 ];
 
