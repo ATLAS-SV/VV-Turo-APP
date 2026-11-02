@@ -7,7 +7,7 @@ import { carName, useStore } from '../state/AppStore';
 import { colors, fmtAgo, fmtTime } from './components';
 import { useExpand } from './expandContext';
 
-function dueLabel(t: TaskWithState, now: Date) {
+export function dueLabel(t: TaskWithState, now: Date) {
   if (t.doneAt) return `Done ${fmtAgo(t.doneAt, now)}${t.doneBy ? ` by ${t.doneBy}` : ''}`;
   const mins = Math.round((Date.parse(t.dueAt) - now.getTime()) / 60_000);
   if (mins < 0) return `Overdue · was due ${fmtTime(t.dueAt)}`;
