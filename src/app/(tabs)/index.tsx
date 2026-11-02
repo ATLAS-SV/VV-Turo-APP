@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { useMemo, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useRef, type ReactNode } from 'react';
+import { Pressable, ScrollView, Text, View, type HostInstance } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn, tomorrow } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
 import { formatMinutes, openShift, shiftMinutes } from '../../logic/hours';
@@ -11,6 +11,7 @@ import type { TaskWithState } from '../../logic/tasks';
 import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
 import { colors, fmtClock, type IconName, Muted } from '../../ui/components';
 import { DonutChart } from '../../ui/DonutChart';
+import { useExpand } from '../../ui/expandContext';
 import { EARNING_COLORS, UPCOMING_COLOR } from '../../ui/earningColors';
 
 type Alert = { icon: IconName; text: string; to: Href };
@@ -293,6 +294,8 @@ function Box({
   badge?: string;
   badgeTone?: 'warn' | 'neutral';
 }) {
+  const ref = useRef<HostInstance>(null);
+  const expand = useExpand();
   const header = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <Ionicons name={icon} size={16} color={colors.primary} />
@@ -316,10 +319,12 @@ function Box({
     borderColor: colors.border,
     ...(half ? { flex: 1 } : {}),
   };
+  // The box grows to fill the screen and becomes the page it opens.
+  const open = () => expand(ref.current, onPress);
   if (headerOnly) {
     return (
-      <View style={box}>
-        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open ${title}`} hitSlop={6}>
+      <View ref={ref} style={box}>
+        <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} hitSlop={6}>
           {header}
         </Pressable>
         {children}
@@ -327,9 +332,11 @@ function Box({
     );
   }
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open ${title}`} style={({ pressed }) => [box, { opacity: pressed ? 0.85 : 1 }]}>
-      {header}
-      {children}
-    </Pressable>
+    <View ref={ref} style={box}>
+      <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} style={({ pressed }) => ({ gap: 7, opacity: pressed ? 0.85 : 1 })}>
+        {header}
+        {children}
+      </Pressable>
+    </View>
   );
 }

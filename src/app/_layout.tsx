@@ -5,6 +5,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppStoreProvider, useStore } from '../state/AppStore';
 import { colors, Toasts } from '../ui/components';
 import { BRAND, Logo } from '../ui/Brand';
+import { ExpandProvider } from '../ui/motion';
+
+/** Pages opened by a box expanding into them fade in under it instead of sliding. */
+const EXPANDED_PAGE = { animation: 'fade' as const, animationDuration: 180 };
 
 function RootStack() {
   const { loaded, currentUser } = useStore();
@@ -23,9 +27,9 @@ function RootStack() {
       <Stack screenOptions={{ headerTintColor: colors.primary, headerTitleStyle: { color: colors.text }, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="car/[id]" options={{ title: 'Car' }} />
-          <Stack.Screen name="booking/[id]" options={{ title: 'Booking' }} />
-          <Stack.Screen name="tasks" options={{ title: 'Tasks' }} />
+          <Stack.Screen name="car/[id]" options={{ title: 'Car', ...EXPANDED_PAGE }} />
+          <Stack.Screen name="booking/[id]" options={{ title: 'Booking', ...EXPANDED_PAGE }} />
+          <Stack.Screen name="tasks" options={{ title: 'Tasks', ...EXPANDED_PAGE }} />
           <Stack.Protected guard={isExec}>
             <Stack.Screen name="activity" options={{ title: 'Activity log' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
@@ -47,7 +51,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppStoreProvider>
-        <RootStack />
+        <ExpandProvider>
+          <RootStack />
+        </ExpandProvider>
       </AppStoreProvider>
     </SafeAreaProvider>
   );

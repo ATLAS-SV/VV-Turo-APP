@@ -7,6 +7,7 @@ import { defaultHomePage, type HomePage } from '../../logic/types';
 import { useStore } from '../../state/AppStore';
 import { HeaderMark } from '../../ui/Brand';
 import { colors, type IconName } from '../../ui/components';
+import { SwipeTabs } from '../../ui/motion';
 
 function icon(name: IconName) {
   function TabIcon({ color, size }: { color: unknown; size: number }) {
@@ -52,6 +53,8 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
   );
 }
 
+const TAB_HREF = { cars: '/cars', map: '/map', index: '/', money: '/money', hours: '/hours', more: '/more' } as const;
+
 const HOME_HREF = { overview: '/', cars: '/cars', map: '/map', bookings: '/cars?view=bookings', money: '/money', hours: '/hours' } as const;
 
 /**
@@ -75,6 +78,9 @@ export default function TabsLayout() {
   const hidden = { tabBarItemStyle: { display: 'none' as const } };
   const shown = (onTabBar: boolean) => (onTabBar ? {} : hidden);
 
+  // Swipe order matches the tab bar, left to right.
+  const order = isExec ? ['cars', 'map', 'index', 'money', 'more'] : ['cars', 'map', 'index', 'hours', 'more'];
+
   return (
     <Tabs
       screenOptions={{
@@ -82,6 +88,20 @@ export default function TabsLayout() {
         headerTitleStyle: { color: colors.text },
         headerLeft: HeaderMark,
         tabBarStyle: { overflow: 'visible' },
+        animation: 'shift', // tabs slide in from the side you're moving toward
+      }}
+      screenLayout={({ route, children }) => {
+        const i = order.indexOf(route.name);
+        return (
+          <SwipeTabs
+            prev={i > 0 ? order[i - 1] : null}
+            next={i >= 0 && i < order.length - 1 ? order[i + 1] : null}
+            onGo={(tab) => router.navigate(TAB_HREF[tab as keyof typeof TAB_HREF])}
+            enabled={i >= 0 && route.name !== 'map'} // the map needs sideways drags for itself
+          >
+            {children}
+          </SwipeTabs>
+        );
       }}
     >
       <Tabs.Screen name="cars" options={{ title: isExec ? 'Cars & Bookings' : 'Cars & Trips', tabBarLabel: 'Cars', tabBarIcon: icon('car-sport') }} />

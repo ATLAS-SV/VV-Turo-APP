@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useRef, type ComponentProps, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type HostInstance, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LockState } from '../logic/types';
 import { useStore } from '../state/AppStore';
+import { useExpand } from './expandContext';
 
 import { theme } from './theme';
 
@@ -41,10 +42,17 @@ export function Screen({ children, scroll = true, padTop = false }: { children: 
 }
 
 export function Card({ children, style, onPress }: { children: ReactNode; style?: ViewStyle; onPress?: () => void }) {
-  const body = <View style={[s.card, style]}>{children}</View>;
+  const ref = useRef<HostInstance>(null);
+  const expand = useExpand();
+  const body = (
+    <View ref={ref} style={[s.card, style]}>
+      {children}
+    </View>
+  );
   if (!onPress) return body;
+  // Tapping a card grows it into the page it opens.
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+    <Pressable onPress={() => expand(ref.current, onPress)} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
       {body}
     </Pressable>
   );
