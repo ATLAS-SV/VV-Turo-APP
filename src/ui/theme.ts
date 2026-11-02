@@ -61,3 +61,9 @@ export type ThemeKey = keyof typeof THEMES;
 export const ACTIVE_THEME: ThemeKey = 'royalGold';
 
 export const theme: BrandTheme = THEMES[ACTIVE_THEME];
+
+/**
+ * Appearance. 'light' is the app's look; 'dark' uses the logo's deep purple as the background.
+ * Preview it with EXPO_PUBLIC_APPEARANCE=dark when building.
+ */
+export const APPEARANCE: 'light' | 'dark' = process.env.EXPO_PUBLIC_APPEARANCE === 'dark' ? 'dark' : 'light';

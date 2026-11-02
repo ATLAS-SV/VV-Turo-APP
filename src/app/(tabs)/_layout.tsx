@@ -46,7 +46,7 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
           elevation: 6,
         }}
       >
-        <Ionicons name="grid" size={24} color={colors.accent} />
+        <Ionicons name="grid" size={24} color={selected && colors.primary === colors.accent ? colors.primaryText : colors.accent} />
       </View>
       <Text style={{ fontSize: 10, marginTop: 0, fontWeight: '700', color: selected ? colors.primary : colors.muted }}>Overview</Text>
     </Pressable>

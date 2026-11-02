@@ -75,13 +75,13 @@ export function BookingCalendar({
                     borderColor: colors.primary,
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: isToday || isSel ? '800' : '500', color: isSel ? '#fff' : colors.text }}>{day.getDate()}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: isToday || isSel ? '800' : '500', color: isSel ? colors.primaryText : colors.text }}>{day.getDate()}</Text>
                   <View style={{ width: '80%', gap: 2 }}>
                     {dayBookings.slice(0, 3).map((b) => (
-                      <View key={b.id} style={{ height: 4, borderRadius: 2, backgroundColor: isSel ? '#fff' : colorOf(b.carId) }} />
+                      <View key={b.id} style={{ height: 4, borderRadius: 2, backgroundColor: isSel ? colors.primaryText : colorOf(b.carId) }} />
                     ))}
                     {dayBookings.length > 3 ? (
-                      <Text style={{ fontSize: 9, textAlign: 'center', color: isSel ? '#fff' : colors.muted }}>+{dayBookings.length - 3}</Text>
+                      <Text style={{ fontSize: 9, textAlign: 'center', color: isSel ? colors.primaryText : colors.muted }}>+{dayBookings.length - 3}</Text>
                     ) : null}
                   </View>
                 </Pressable>

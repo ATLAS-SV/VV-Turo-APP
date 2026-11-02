@@ -6,9 +6,9 @@ import type { LockState } from '../logic/types';
 import { useStore } from '../state/AppStore';
 import { useExpand } from './expandContext';
 
-import { theme } from './theme';
+import { APPEARANCE, theme } from './theme';
 
-export const colors = {
+const LIGHT = {
   bg: theme.background,
   card: '#FFFFFF',
   text: '#14171F',
@@ -26,7 +26,32 @@ export const colors = {
   danger: '#B91C1C',
   dangerBg: '#FDECEC',
   neutralBg: theme.secondarySoft,
+  toastBg: '#1F2430',
 };
+
+/** The logo's deep purple as the background; cards a step lighter; gold for actions. */
+const DARK: typeof LIGHT = {
+  bg: theme.primaryDark, // #1E0E45, the logo's purple
+  card: '#2A1856',
+  text: '#F5EFE0',
+  muted: '#B9AED3',
+  border: '#3D2B70',
+  primary: theme.accent, // gold buttons, links and active tab
+  primaryDark: theme.primaryDark,
+  secondary: '#9C86D9',
+  accent: theme.accent,
+  primaryText: theme.primaryDark, // dark text on gold buttons
+  locked: '#5FD08A',
+  lockedBg: 'rgba(95,208,138,0.16)',
+  unlocked: '#F2B25C',
+  unlockedBg: 'rgba(242,178,92,0.16)',
+  danger: '#FF8F8F',
+  dangerBg: 'rgba(255,143,143,0.16)',
+  neutralBg: '#35226B',
+  toastBg: '#3B2A78',
+};
+
+export const colors = APPEARANCE === 'dark' ? DARK : LIGHT;
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -102,7 +127,7 @@ export function Chip({ label, tone = 'neutral', icon }: { label: string; tone?: 
     warn: [colors.unlockedBg, colors.unlocked],
     bad: [colors.dangerBg, colors.danger],
     neutral: [colors.neutralBg, colors.muted],
-    info: [theme.secondarySoft, colors.primary],
+    info: [colors.neutralBg, colors.primary],
   }[tone];
   return (
     <View style={[s.chip, { backgroundColor: t[0] }]}>
@@ -172,7 +197,7 @@ export function Toasts() {
     <View pointerEvents="box-none" style={[s.toastWrap, { top: insets.top + 8 }]}>
       {toasts.map((t) => (
         <Pressable key={t.id} onPress={() => dismissToast(t.id)} style={s.toast} accessibilityRole="alert">
-          <Ionicons name="notifications" size={18} color="#fff" />
+          <Ionicons name="notifications" size={18} color="#FFFFFF" />
           <Text style={s.toastText}>{t.text}</Text>
           <Ionicons name="close" size={16} color="#C9CDD6" />
         </Pressable>
@@ -217,6 +242,6 @@ const s = StyleSheet.create({
   kvValue: { color: colors.text, fontSize: 15, fontWeight: '500', flexShrink: 1, textAlign: 'right' },
   listItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   toastWrap: { position: 'absolute', left: 12, right: 12, gap: 8, zIndex: 100 },
-  toast: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#1F2430', padding: 12, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.toastBg, padding: 12, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   toastText: { color: '#fff', flex: 1, fontSize: 14 },
 });

@@ -80,7 +80,7 @@ export function PinPad({
               {k === 'del' ? (
                 <Ionicons name="backspace-outline" size={26} color={b ? colors.accent : colors.text} />
               ) : isOk ? (
-                <Ionicons name="checkmark" size={28} color={b ? (okReady ? colors.primaryDark : colors.accent) : okReady ? '#fff' : colors.muted} />
+                <Ionicons name="checkmark" size={28} color={b ? (okReady ? colors.primaryDark : colors.accent) : okReady ? colors.primaryText : colors.muted} />
               ) : (
                 <Text style={[styles.keyText, b && styles.bKeyText]}>{k}</Text>
               )}
