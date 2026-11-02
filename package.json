@@ -40,7 +40,8 @@
     "web": "expo start --web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "sync:server": "node scripts/sync-server-logic.mjs"
   },
   "private": true
 }

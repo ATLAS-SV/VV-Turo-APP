@@ -91,3 +91,26 @@ export function reminderTimes(t: Task, settings: Settings): { kind: 'soon' | 'ov
 export function canSeeTask(t: Task, isExec: boolean): boolean {
   return isExec || !EXEC_ONLY_KINDS.includes(t.kind);
 }
+
+/**
+ * Which reminders to send now: a "due soon" heads-up and an "overdue" alert, once each per task.
+ * Tasks that were already overdue for over a day when first seen are marked as sent silently (no nagging).
+ */
+export function planTaskAlerts(
+  tasks: TaskWithState[],
+  alreadySent: string[],
+  now: Date,
+): { send: { task: TaskWithState; kind: 'soon' | 'overdue' }[]; markSent: string[] } {
+  const send: { task: TaskWithState; kind: 'soon' | 'overdue' }[] = [];
+  const markSent: string[] = [];
+  for (const t of tasks) {
+    if (t.status !== 'due_soon' && t.status !== 'overdue') continue;
+    const kind = t.status === 'overdue' ? 'overdue' : 'soon';
+    const key = `${t.id}:${kind}`;
+    if (alreadySent.includes(key)) continue;
+    markSent.push(key);
+    if (kind === 'overdue' && now.getTime() - Date.parse(t.dueAt) > 24 * 60 * MIN) continue;
+    send.push({ task: t, kind });
+  }
+  return { send, markSent };
+}

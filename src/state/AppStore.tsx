@@ -3,7 +3,7 @@ import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { DEFAULT_SETTINGS, SEED_CARS, seedBookings, seedMoney, seedTasks } from '../data/seed';
-import { allTasks, canSeeTask, type TaskDoneMap, type TaskWithState } from '../logic/tasks';
+import { allTasks, canSeeTask, planTaskAlerts, type TaskDoneMap, type TaskWithState } from '../logic/tasks';
 import { syncTaskNotifications } from '../services/notifications';
 import { planAutomation } from '../logic/automation';
 import { evaluateCheckIn, REFUSAL_MESSAGES } from '../logic/guestCheckIn';
@@ -273,18 +273,10 @@ function useAppStoreValue() {
       // Task reminders: "due soon" heads-up and "overdue" alert, once each.
       const st = ref.current;
       const tasks = allTasks(st.bookings, st.extraTasks, st.taskDone, st.settings, new Date());
-      const newlySent: string[] = [];
-      for (const t of tasks) {
-        if (t.status !== 'due_soon' && t.status !== 'overdue') continue;
-        const key = `${t.id}:${t.status === 'overdue' ? 'overdue' : 'soon'}`;
-        if (st.taskAlertsSent.includes(key)) continue;
-        // Don't nag about things that were already overdue for over a day before the app saw them.
-        if (t.status === 'overdue' && Date.now() - Date.parse(t.dueAt) > 24 * 3600_000) {
-          newlySent.push(key);
-          continue;
-        }
-        newlySent.push(key);
-        log(t.status === 'overdue' ? 'task_overdue' : 'task_reminder', { kind: 'system' }, {
+      const plan = planTaskAlerts(tasks, st.taskAlertsSent, new Date());
+      const newlySent = plan.markSent;
+      for (const { task: t, kind } of plan.send) {
+        log(kind === 'overdue' ? 'task_overdue' : 'task_reminder', { kind: 'system' }, {
           carId: t.carId,
           detail: describeTask(t, st.bookings, st.cars, true),
           notify: true,
@@ -725,6 +717,9 @@ export const ACTION_LABELS: Record<ActivityAction, string> = {
   pin_lockout: 'App locked (wrong PINs)',
   settings_changed: 'Settings changed',
   team_changed: 'Team changed',
+  booking_received: 'New booking',
+  booking_canceled: 'Booking canceled',
+  guest_message: 'Guest message',
   task_done: 'Task done',
   task_reminder: 'Task due soon',
   task_overdue: 'Task overdue',

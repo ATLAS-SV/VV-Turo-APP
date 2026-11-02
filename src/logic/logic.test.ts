@@ -255,3 +255,14 @@ describe('booking calendar', () => {
     expect(bookingsOnDay([{ ...b, canceled: true }], new Date(2026, 10, 4))).toHaveLength(0);
   });
 });
+
+describe('task reminders', () => {
+  it('sends each reminder once and skips long-overdue ones', async () => {
+    const { allTasks, planTaskAlerts } = await import('./tasks');
+    const tasks = allTasks([booking({ tripStart: minFromNow(30) }), booking({ id: 'old', tripStart: minAgo(3000), tripEnd: minFromNow(100) })], [], {}, S, NOW);
+    const first = planTaskAlerts(tasks, [], NOW);
+    expect(first.send.map((s) => `${s.task.id}:${s.kind}`)).toEqual(['b1:confirm_license:overdue', 'b1:checkin_photos:soon', 'b1:checkin_dash_photo:soon']);
+    expect(first.markSent).toContain('old:checkin_photos:overdue'); // silently marked, not sent
+    expect(planTaskAlerts(tasks, first.markSent, NOW).send).toHaveLength(0);
+  });
+});

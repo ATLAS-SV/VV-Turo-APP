@@ -1,0 +1,13 @@
+# Supabase project config (used by `supabase link` / `supabase functions deploy`).
+project_id = "vv-turo-app"
+
+# These functions check their own secrets (cron secret, intake secret, per-booking token),
+# so Supabase's built-in JWT check is turned off for them.
+[functions.tick]
+verify_jwt = false
+
+[functions.inbound-email]
+verify_jwt = false
+
+[functions.checkin]
+verify_jwt = false

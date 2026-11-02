@@ -167,6 +167,9 @@ export type ActivityAction =
   | 'pin_lockout'
   | 'settings_changed'
   | 'team_changed'
+  | 'booking_received'
+  | 'booking_canceled'
+  | 'guest_message'
   | 'task_done'
   | 'task_reminder'
   | 'task_overdue';

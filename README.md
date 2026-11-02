@@ -18,6 +18,56 @@ The app is hosted as a web app; no App Store, no fees, no expiry.
 
 Build it locally: `npx expo export --platform web` (output in `dist/`).
 
+## Server (Supabase) — set up once
+
+The server runs auto-lock and guest relock every minute (even when no phone has the app open),
+reads Turo emails, and serves the guest check-in link. Code: `supabase/`.
+
+| Piece | What it does |
+| --- | --- |
+| `supabase/migrations/` | Database tables (locked down: only the server can read/write), starting data, and the every-minute schedule |
+| `supabase/functions/tick` | Every minute: auto-lock, guest countdown relock, trip started, late returns, task reminders |
+| `supabase/functions/inbound-email` | Applies Turo emails: bookings, changes, cancellations (→ missed earnings), payouts, reimbursements, claim deadlines, license reminders |
+| `supabase/functions/checkin` | Guest check-in link: status + unlock when the guest is in the lot during the pickup window |
+| `scripts/gmail-forwarder.gs` | Runs in your Gmail account; sends new Turo emails to the server every 5 minutes |
+| `supabase/functions/_shared/logic/` | Same rules as the app, copied by `npm run sync:server` (edit `src/logic`, not the copy) |
+
+Steps (on your computer, one time):
+
+1. Create a free project at supabase.com. Note the **project ref** (in the URL) and the **database password**.
+2. Install the Supabase CLI (https://supabase.com/docs/guides/cli), then in this folder:
+
+   ```bash
+   supabase login
+   supabase link --project-ref <project-ref>
+   supabase db push
+   ```
+
+3. Make two long random secrets (e.g. `openssl rand -hex 32`, run twice) and save them:
+
+   ```bash
+   supabase secrets set CRON_SECRET=<secret-1> INTAKE_SECRET=<secret-2>
+   supabase functions deploy tick
+   supabase functions deploy inbound-email
+   supabase functions deploy checkin
+   ```
+
+4. In the Supabase dashboard → **SQL Editor**, run once (turns on the every-minute schedule):
+
+   ```sql
+   select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
+   select vault.create_secret('<secret-1>', 'cron_secret');
+   ```
+
+5. Set up the Gmail forwarder: follow the steps at the top of `scripts/gmail-forwarder.gs`
+   (URL `https://<project-ref>.supabase.co/functions/v1/inbound-email`, secret `<secret-2>`).
+
+Server test (needs a throwaway Postgres with the migrations applied; it wipes app tables):
+`SUPABASE_DB_URL=postgres://... deno test -A --config supabase/functions/deno.json supabase/tests/server_test.ts`
+
+Still to come: the phone app reading/writing through the server (it still uses on-phone pretend data),
+the guest check-in web page, push notifications, then Smartcar and Zubie.
+
 ## Try it
 
 ```bash
