@@ -1,10 +1,14 @@
 import { router } from 'expo-router';
-import { bookingStatus } from '../logic/bookings';
+import { useState } from 'react';
+import { Pressable } from 'react-native';
+import { bookingsOnDay, bookingStatus } from '../logic/bookings';
+import { monthKey } from '../logic/money';
 import { can } from '../logic/permissions';
 import type { Booking, BookingStatus } from '../logic/types';
 import { carName, useNow, useStore } from '../state/AppStore';
+import { BookingCalendar } from './BookingCalendar';
 import { CHECK_IN_LABEL } from './labels';
-import { Card, Chip, fmtMoney, fmtTime, Muted, Row, Screen, SectionTitle, Title } from './components';
+import { Card, Chip, colors, fmtMoney, fmtTime, Muted, Row, Screen, SectionTitle, Title } from './components';
 
 const GROUPS: { status: BookingStatus; title: string }[] = [
   { status: 'active', title: 'On trip now' },
@@ -20,28 +24,53 @@ export function BookingsList() {
   const showMoney = can(currentUser, 'viewEarnings');
   const showGuest = can(currentUser, 'viewGuestDetails');
 
+  const [month, setMonth] = useState(() => monthKey(new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const sorted = [...bookings].sort((a, b) => Date.parse(a.tripStart) - Date.parse(b.tripStart));
   const upcomingEarnings = bookings
     .filter((b) => ['upcoming', 'active'].includes(bookingStatus(b, now)))
     .reduce((s, b) => s + b.earnings, 0);
 
+  const dayList = selectedDay ? bookingsOnDay(bookings, selectedDay) : [];
+  const card = (b: Booking) => <BookingCard key={b.id} b={b} showMoney={showMoney} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} />;
+
   return (
     <Screen>
-      <Muted>Pretend bookings. Later these will be filled in automatically from Turo emails in Gmail.</Muted>
-      {showMoney ? (
-        <Card>
-          <Muted>Upcoming & active earnings</Muted>
-          <Title>{fmtMoney(upcomingEarnings)}</Title>
-        </Card>
-      ) : null}
-      {GROUPS.map(({ status, title }) => {
-        const list = sorted.filter((b) => bookingStatus(b, now) === status);
-        if (!list.length || (status === 'canceled' && !showGuest)) return null;
-        return [
-          <SectionTitle key={`${status}-t`}>{title}</SectionTitle>,
-          ...list.map((b) => <BookingCard key={b.id} b={b} showMoney={showMoney} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} />),
-        ];
-      })}
+      <BookingCalendar
+        bookings={bookings}
+        cars={cars}
+        month={month}
+        onMonth={setMonth}
+        selected={selectedDay}
+        onSelect={setSelectedDay}
+        now={now}
+      />
+      {selectedDay ? (
+        <>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <SectionTitle>{selectedDay.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</SectionTitle>
+            <Pressable onPress={() => setSelectedDay(null)} accessibilityRole="button" hitSlop={8}>
+              <Muted style={{ color: colors.primary, fontWeight: '600' }}>Show all</Muted>
+            </Pressable>
+          </Row>
+          {dayList.length ? dayList.map(card) : <Muted>No bookings this day.</Muted>}
+        </>
+      ) : (
+        <>
+          {showMoney ? (
+            <Card>
+              <Muted>Upcoming & active earnings</Muted>
+              <Title>{fmtMoney(upcomingEarnings)}</Title>
+            </Card>
+          ) : null}
+          {GROUPS.map(({ status, title }) => {
+            const list = sorted.filter((b) => bookingStatus(b, now) === status);
+            if (!list.length || (status === 'canceled' && !showGuest)) return null;
+            return [<SectionTitle key={`${status}-t`}>{title}</SectionTitle>, ...list.map(card)];
+          })}
+          <Muted style={{ fontSize: 12 }}>Pretend bookings. Later these are filled in automatically from Turo emails in Gmail.</Muted>
+        </>
+      )}
     </Screen>
   );
 }

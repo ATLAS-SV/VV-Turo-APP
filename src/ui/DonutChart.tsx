@@ -73,10 +73,12 @@ export function DonutChart({
           })
         )}
       </Svg>
-      <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-        <Text style={{ fontSize: 11, color: colors.muted }}>{centerLabel}</Text>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text }}>{centerValue}</Text>
-      </View>
+      {centerLabel || centerValue ? (
+        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+          <Text style={{ fontSize: 11, color: colors.muted }}>{centerLabel}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text }}>{centerValue}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

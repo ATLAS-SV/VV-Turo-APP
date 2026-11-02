@@ -242,3 +242,16 @@ describe('tasks', () => {
     expect(r[0].at.getTime()).toBe(Date.parse(minFromNow(30)) - 60 * 60_000);
   });
 });
+
+describe('booking calendar', () => {
+  it('builds month weeks and finds bookings overlapping a day', async () => {
+    const { monthGrid, bookingsOnDay } = await import('./bookings');
+    const weeks = monthGrid('2026-11'); // Nov 1 2026 is a Sunday
+    expect(weeks[0][0]?.getDate()).toBe(1);
+    expect(weeks.flat().filter(Boolean).length).toBe(30);
+    const b = booking({ tripStart: new Date(2026, 10, 3, 10).toISOString(), tripEnd: new Date(2026, 10, 5, 9).toISOString() });
+    expect(bookingsOnDay([b], new Date(2026, 10, 4))).toHaveLength(1);
+    expect(bookingsOnDay([b], new Date(2026, 10, 6))).toHaveLength(0);
+    expect(bookingsOnDay([{ ...b, canceled: true }], new Date(2026, 10, 4))).toHaveLength(0);
+  });
+});
