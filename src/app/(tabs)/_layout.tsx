@@ -97,7 +97,7 @@ export default function TabsLayout() {
             prev={i > 0 ? order[i - 1] : null}
             next={i >= 0 && i < order.length - 1 ? order[i + 1] : null}
             onGo={(tab) => router.navigate(TAB_HREF[tab as keyof typeof TAB_HREF])}
-            enabled={i >= 0 && route.name !== 'map'} // the map needs sideways drags for itself
+            enabled={i >= 0} // the map itself and the car picker are no-swipe zones (see map.tsx)
           >
             {children}
           </SwipeTabs>

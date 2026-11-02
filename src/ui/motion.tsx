@@ -2,7 +2,7 @@
 // (2) swipe left/right on a tab page to move to the neighbouring tab.
 // Built on React Native's own Animated + PanResponder, so it works the same on iPhone and the web app.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { colors } from './components';
 import { ExpandCtx, type Expand } from './expandContext';
 
@@ -149,6 +149,7 @@ export function SwipeTabs({
     let mode: 'undecided' | 'swipe' | 'scroll' = 'undecided';
     const down = (e: PointerEvent) => {
       if (!latest.current.enabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if ((e.target as Element | null)?.closest?.('[data-noswipe]')) return; // e.g. the map, the car picker row
       start = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId };
       mode = 'undecided';
     };
@@ -200,7 +201,8 @@ export function SwipeTabs({
   // eslint-disable-next-line react-hooks/refs
   const [responder] = useState(() =>
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, g) => latest.current.enabled && Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        latest.current.enabled && !inNoSwipeZone(g.x0, g.y0) && Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
       onPanResponderMove: (_, g) => motion.current.drag(g.dx),
       onPanResponderRelease: (_, g) => motion.current.finish(g.dx, g.vx),
       onPanResponderTerminate: () => motion.current.cancel(),
@@ -245,4 +247,39 @@ export function SlideOnChange({ value, children, distance = 36, style }: { value
     ]).start();
   }, [value, distance, tx, op]);
   return <Animated.View style={[style, { transform: [{ translateX: tx }], opacity: op }]}>{children}</Animated.View>;
+}
+
+// ---------- no-swipe zones ----------
+
+const zones = new Map<number, { x: number; y: number; w: number; h: number }>();
+let nextZone = 1;
+
+function inNoSwipeZone(x: number, y: number) {
+  for (const r of zones.values()) if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return true;
+  return false;
+}
+
+/**
+ * Area that keeps sideways drags for itself (the map, a sideways-scrolling row):
+ * a drag that starts here never switches tabs.
+ */
+export function NoSwipeZone({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  const ref = useRef<HostInstance>(null);
+  const [id] = useState(() => nextZone++);
+  useEffect(() => () => void zones.delete(id), [id]);
+  const measureZone = () =>
+    ref.current?.measureInWindow((x, y, w, h) => {
+      zones.set(id, { x, y, w, h });
+    });
+  return (
+    <View
+      ref={ref}
+      style={style}
+      onLayout={Platform.OS === 'web' ? undefined : measureZone}
+      // On web the zone is found from the touched element (data-noswipe attribute).
+      {...({ dataSet: { noswipe: '1' } } as object)}
+    >
+      {children}
+    </View>
+  );
 }

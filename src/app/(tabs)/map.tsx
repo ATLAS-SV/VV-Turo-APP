@@ -7,7 +7,7 @@ import type { Car, Trip } from '../../logic/types';
 import { carName, useNow, useStore } from '../../state/AppStore';
 import CarMap from '../../ui/CarMap';
 import { Button, Card, colors, fmtAgo, fmtTime, KeyValue, LockChip, Muted, Row, SectionTitle, Title } from '../../ui/components';
-import { SlideOnChange } from '../../ui/motion';
+import { NoSwipeZone, SlideOnChange } from '../../ui/motion';
 
 /**
  * The map is the main focus at the top. Below it: a car picker (pick one to zoom to it and see its details),
@@ -45,11 +45,14 @@ export default function MapScreen() {
     <ScrollView ref={scroller} style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
       {/* The map: main focus */}
       <View style={{ height: Math.max(300, Math.round(height * 0.5)) }}>
-        <CarMap selectedCarId={selected} onSelectCar={(id) => pick(id)} />
+        <NoSwipeZone style={{ flex: 1 }}>
+          <CarMap selectedCarId={selected} onSelectCar={(id) => pick(id)} />
+        </NoSwipeZone>
       </View>
 
       <View style={{ padding: 16, gap: 12 }}>
         {/* Car picker */}
+        <NoSwipeZone>
         <ScrollView ref={chipRow} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="tablist">
           <PickerChip label="All cars" active={!selected} onPress={() => pick(null)} onX={(x) => (chipX.current.all = x)} />
           {cars.map((c) => (
@@ -63,6 +66,7 @@ export default function MapScreen() {
             />
           ))}
         </ScrollView>
+        </NoSwipeZone>
 
         {/* Selected car, or a summary of all of them */}
         <SlideOnChange value={selected ?? '0-all'}>
