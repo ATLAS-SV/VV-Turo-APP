@@ -139,7 +139,8 @@ describe('PIN', () => {
     expect(validatePinFormat('12')).not.toBeNull();
     expect(validatePinFormat('1111')).not.toBeNull();
     expect(validatePinFormat('1234')).not.toBeNull();
-    expect(validatePinFormat('48291')).toBeNull();
+    expect(validatePinFormat('4829')).toBeNull();
+    expect(validatePinFormat('48291')).not.toBeNull(); // exactly 4 digits
   });
   it('locks the app after several wrong attempts, longer each time', () => {
     let s = NO_LOCKOUT;

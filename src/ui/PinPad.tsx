@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { PIN_MAX_LENGTH, PIN_MIN_LENGTH } from '../logic/pin';
+import { PIN_LENGTH } from '../logic/pin';
 import { colors } from './components';
 
 /** Number pad with dots. Calls onSubmit when the check key is pressed. */
@@ -27,25 +27,31 @@ export function PinPad({
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const submit = async (value: string) => {
+    setBusy(true);
+    const keep = await onSubmit(value);
+    setBusy(false);
+    if (!keep) setPin('');
+  };
+
   const press = async (key: string) => {
     if (disabled || busy) return;
     if (key === 'del') return setPin((p) => p.slice(0, -1));
     if (key === 'ok') {
-      if (pin.length < PIN_MIN_LENGTH) return;
-      setBusy(true);
-      const keep = await onSubmit(pin);
-      setBusy(false);
-      if (!keep) setPin('');
+      if (pin.length === PIN_LENGTH) await submit(pin);
       return;
     }
-    setPin((p) => (p.length < PIN_MAX_LENGTH ? p + key : p));
+    if (pin.length >= PIN_LENGTH) return; // PINs are exactly 4 digits: ignore extra presses
+    const next = pin + key;
+    setPin(next);
+    if (next.length === PIN_LENGTH) await submit(next); // the 4th digit submits, like an iPhone passcode
   };
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
   return (
     <View style={{ alignItems: 'center', gap: height < 740 ? 10 : 18 }}>
       <View style={styles.dots} accessibilityLabel={`${pin.length} digits entered`}>
-        {Array.from({ length: Math.max(PIN_MIN_LENGTH, pin.length) }).map((_, i) => (
+        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <View key={i} style={[styles.dot, i < pin.length && styles.dotFilled, b && styles.bDot, b && i < pin.length && styles.bDotFilled]} />
         ))}
       </View>
@@ -53,7 +59,7 @@ export function PinPad({
       <View style={[styles.grid, { width: 3 * keySize + 2 * gap, gap }]}>
         {keys.map((k) => {
           const isOk = k === 'ok';
-          const okReady = pin.length >= PIN_MIN_LENGTH;
+          const okReady = pin.length === PIN_LENGTH;
           return (
             <Pressable
               key={k}

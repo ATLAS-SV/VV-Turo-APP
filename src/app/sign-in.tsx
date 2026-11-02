@@ -53,7 +53,7 @@ function FirstRunSetup() {
     <LogoScreen>
       <StatusBar style="light" />
       <Text style={styles.sub}>
-        {step === 'pin' ? 'Create your Executive PIN (4–8 digits)' : 'Enter the same PIN again'}
+        {step === 'pin' ? 'Create your 4-digit Executive PIN' : 'Enter the same PIN again'}
       </Text>
       <PinPad
         variant="brand"

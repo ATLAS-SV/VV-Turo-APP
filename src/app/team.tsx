@@ -76,10 +76,10 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
           <TextInput
             value={newPin}
             onChangeText={(t) => setNewPin(t.replace(/\D/g, ''))}
-            placeholder="New PIN (4–8 digits)"
+            placeholder="New PIN (4 digits)"
             keyboardType="number-pad"
             secureTextEntry
-            maxLength={8}
+            maxLength={4}
             style={inputStyle}
           />
           <Row>
@@ -129,10 +129,10 @@ function AddPerson() {
       <TextInput
         value={pin}
         onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
-        placeholder="Their PIN (4–8 digits)"
+        placeholder="Their PIN (4 digits)"
         keyboardType="number-pad"
         secureTextEntry
-        maxLength={8}
+        maxLength={4}
         style={inputStyle}
       />
       <Row>

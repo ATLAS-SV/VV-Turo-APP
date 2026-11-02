@@ -30,11 +30,12 @@ import type {
 } from '../logic/types';
 import { mockFleet, tracker, vehicleControl } from '../services/mockFleet';
 
-const STORAGE_KEY = 'turo-app/v1';
+// v2: PINs became exactly 4 digits, so data saved with longer PINs starts fresh.
+const STORAGE_KEY = 'turo-app/v2';
 
 /** Demo build (EXPO_PUBLIC_DEMO=1): starts with two people and shows their PINs on the sign-in screen. */
 export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO === '1';
-export const DEMO_PINS = { executive: '135790', employee: '246800' };
+export const DEMO_PINS = { executive: '1357', employee: '2468' };
 const AUTOMATION_INTERVAL_MS = 15_000;
 
 interface Persisted {

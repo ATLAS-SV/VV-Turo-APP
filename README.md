@@ -18,7 +18,7 @@ The app is hosted as a web app; no App Store, no fees, no expiry.
 
 Build it locally: `npx expo export --platform web` (output in `dist/`).
 
-One-page clickable demo (pretend data, preset PINs: Executive 135790, Employee 246800):
+One-page clickable demo (pretend data, preset PINs: Executive 1357, Employee 2468):
 `EXPO_PUBLIC_DEMO=1 npx expo export --platform web --output-dir dist-demo && node scripts/make-demo-page.mjs dist-demo demo.html`
 
 ## Server (Supabase) — set up once

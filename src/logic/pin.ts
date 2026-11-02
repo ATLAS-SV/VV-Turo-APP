@@ -1,5 +1,5 @@
-export const PIN_MIN_LENGTH = 4;
-export const PIN_MAX_LENGTH = 8;
+/** PINs are exactly this many digits. */
+export const PIN_LENGTH = 4;
 /** Wrong attempts allowed before the app locks. */
 export const MAX_PIN_ATTEMPTS = 5;
 const BASE_LOCKOUT_MINUTES = 5;
@@ -16,9 +16,7 @@ export const NO_LOCKOUT: PinLockout = { failedAttempts: 0, lockedUntil: null, lo
 
 export function validatePinFormat(pin: string): string | null {
   if (!/^\d+$/.test(pin)) return 'PIN must be digits only.';
-  if (pin.length < PIN_MIN_LENGTH || pin.length > PIN_MAX_LENGTH) {
-    return `PIN must be ${PIN_MIN_LENGTH}–${PIN_MAX_LENGTH} digits.`;
-  }
+  if (pin.length !== PIN_LENGTH) return `PIN must be ${PIN_LENGTH} digits.`;
   if (/^(\d)\1+$/.test(pin)) return 'PIN can’t be all the same digit.';
   if ('0123456789'.includes(pin) || '9876543210'.includes(pin)) {
     return 'PIN can’t be a straight sequence like 1234.';
