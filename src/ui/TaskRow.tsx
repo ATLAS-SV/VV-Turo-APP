@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Pressable, Text, View, type HostInstance } from 'react-native';
 import type { TaskWithState } from '../logic/tasks';
 import { carName, useStore } from '../state/AppStore';
 import { colors, fmtAgo, fmtTime } from './components';
+import { useExpand } from './expandContext';
 
 function dueLabel(t: TaskWithState, now: Date) {
   if (t.doneAt) return `Done ${fmtAgo(t.doneAt, now)}${t.doneBy ? ` by ${t.doneBy}` : ''}`;
@@ -16,6 +18,8 @@ function dueLabel(t: TaskWithState, now: Date) {
 /** Checkbox + task. Tapping the text opens the booking (Executives); tapping the box marks it done. */
 export function TaskRow({ t, now }: { t: TaskWithState; now: Date }) {
   const { completeTask, bookings, cars, currentUser } = useStore();
+  const rowRef = useRef<HostInstance>(null);
+  const expand = useExpand();
   const isExec = currentUser?.role === 'executive';
   const b = t.bookingId ? bookings.find((x) => x.id === t.bookingId) : undefined;
   const done = !!t.doneAt;
@@ -24,7 +28,7 @@ export function TaskRow({ t, now }: { t: TaskWithState; now: Date }) {
   const openTo = isExec && b ? `/booking/${b.id}` : null;
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 }}>
+    <View ref={rowRef} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 }}>
       <Pressable
         onPress={() => completeTask(t.id, !done)}
         accessibilityRole="checkbox"
@@ -38,7 +42,7 @@ export function TaskRow({ t, now }: { t: TaskWithState; now: Date }) {
       <Pressable
         style={{ flex: 1 }}
         disabled={!openTo}
-        onPress={() => openTo && router.push(openTo as `/booking/${string}`)}
+        onPress={() => openTo && expand(rowRef.current, () => router.push(openTo as `/booking/${string}`), { radius: 8 })}
       >
         <Text style={{ fontSize: 15, color: done ? colors.muted : colors.text, textDecorationLine: done ? 'line-through' : 'none', fontWeight: '500' }}>
           {t.title}

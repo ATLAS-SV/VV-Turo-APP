@@ -13,6 +13,7 @@ import { can } from '../../logic/permissions';
 import { carName, useNow, useStore } from '../../state/AppStore';
 import { Card, colors, fmtMoney, fmtTime, KeyValue, Muted, Row, Screen, SectionTitle } from '../../ui/components';
 import { DonutChart, type DonutSlice } from '../../ui/DonutChart';
+import { SlideOnChange } from '../../ui/motion';
 import { EARNING_COLORS, UPCOMING_COLOR } from '../../ui/earningColors';
 
 /** Earnings by month: big numbers, a donut of where the money came from, by car, and payouts. Executive only. */
@@ -66,75 +67,78 @@ export default function MoneyScreen() {
         <ArrowButton icon="chevron-forward" label="Next month" onPress={() => setMonth(addMonths(month, 1))} />
       </Row>
 
-      {/* Big numbers with the donut alongside */}
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18 }}>
-        <View style={{ flex: 1, gap: 12 }}>
-          {when !== 'future' ? (
-            <BigNumber label={when === 'past' ? 'Total earned' : 'Earned so far'} value={sum.earned} size={32} />
-          ) : null}
-          {when !== 'past' ? (
-            <BigNumber label={when === 'future' ? 'Upcoming earnings' : 'Upcoming'} value={sum.upcoming} size={when === 'future' ? 32 : 24} />
-          ) : null}
-          <View>
-            <Text style={{ fontSize: 15, color: colors.text, fontWeight: '600' }}>
-              {sum.tripCount} {sum.tripCount === 1 ? 'trip' : 'trips'}
-            </Text>
-            {change !== null ? (
-              <Text style={{ fontSize: 13, fontWeight: '600', color: change >= 0 ? colors.locked : colors.danger }}>
-                {change >= 0 ? '▲' : '▼'} {Math.abs(change)}% vs {monthLabel(addMonths(month, -1), 'short')}
-              </Text>
+      {/* The month's numbers slide in from the side you're moving toward. */}
+      <SlideOnChange value={month} style={{ gap: 12 }}>
+        {/* Big numbers with the donut alongside */}
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18 }}>
+          <View style={{ flex: 1, gap: 12 }}>
+            {when !== 'future' ? (
+              <BigNumber label={when === 'past' ? 'Total earned' : 'Earned so far'} value={sum.earned} size={32} />
             ) : null}
+            {when !== 'past' ? (
+              <BigNumber label={when === 'future' ? 'Upcoming earnings' : 'Upcoming'} value={sum.upcoming} size={when === 'future' ? 32 : 24} />
+            ) : null}
+            <View>
+              <Text style={{ fontSize: 15, color: colors.text, fontWeight: '600' }}>
+                {sum.tripCount} {sum.tripCount === 1 ? 'trip' : 'trips'}
+              </Text>
+              {change !== null ? (
+                <Text style={{ fontSize: 13, fontWeight: '600', color: change >= 0 ? colors.locked : colors.danger }}>
+                  {change >= 0 ? '▲' : '▼'} {Math.abs(change)}% vs {monthLabel(addMonths(month, -1), 'short')}
+                </Text>
+              ) : null}
+            </View>
           </View>
-        </View>
-        <DonutChart slices={slices} size={146} centerLabel="Total" centerValue={money0(total)} />
-      </Card>
+          <DonutChart slices={slices} size={146} centerLabel="Total" centerValue={money0(total)} />
+        </Card>
 
-      {/* Breakdown = the donut's legend, with amounts and shares */}
-      <Card>
-        <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
-        <BreakdownRow color={UPCOMING_COLOR} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
-        <BreakdownRow color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
-        <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
-        <View style={{ height: 1, backgroundColor: colors.border }} />
-        <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the total." value={sum.missed} muted />
-      </Card>
+        {/* Breakdown = the donut's legend, with amounts and shares */}
+        <Card>
+          <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
+          <BreakdownRow color={UPCOMING_COLOR} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
+          <BreakdownRow color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
+          <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the total." value={sum.missed} muted />
+        </Card>
 
-      {Object.keys(sum.byCar).length ? (
-        <>
-          <SectionTitle>By car</SectionTitle>
-          <Card>
-            {cars
-              .filter((c) => sum.byCar[c.id])
-              .sort((a, b) => sum.byCar[b.id] - sum.byCar[a.id])
-              .map((c) => (
-                <KeyValue key={c.id} k={carName(c)} v={fmtMoney(sum.byCar[c.id])} />
-              ))}
-          </Card>
-        </>
-      ) : null}
-
-      {when !== 'future' ? (
-        <>
-          <SectionTitle>Payouts from Turo</SectionTitle>
-          <Card>
-            {sum.payouts.length ? (
-              <>
-                {sum.payouts.map((p) => (
-                  <KeyValue key={p.id} k={`${fmtTime(p.sentAt)} · ${p.method}`} v={fmtMoney(p.amount)} />
+        {Object.keys(sum.byCar).length ? (
+          <>
+            <SectionTitle>By car</SectionTitle>
+            <Card>
+              {cars
+                .filter((c) => sum.byCar[c.id])
+                .sort((a, b) => sum.byCar[b.id] - sum.byCar[a.id])
+                .map((c) => (
+                  <KeyValue key={c.id} k={carName(c)} v={fmtMoney(sum.byCar[c.id])} />
                 ))}
-                <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
-                <KeyValue k="Paid out this month" v={<Text style={{ fontWeight: '700', color: colors.text, fontSize: 15 }}>{fmtMoney(sum.paidOut)}</Text>} />
-              </>
-            ) : (
-              <Muted>No payouts this month.</Muted>
-            )}
-            <Muted style={{ fontSize: 12 }}>
-              Pretend data. Later these come from Turo’s payment emails in Gmail, so payouts may land a few days after the
-              trips they cover.
-            </Muted>
-          </Card>
-        </>
-      ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        {when !== 'future' ? (
+          <>
+            <SectionTitle>Payouts from Turo</SectionTitle>
+            <Card>
+              {sum.payouts.length ? (
+                <>
+                  {sum.payouts.map((p) => (
+                    <KeyValue key={p.id} k={`${fmtTime(p.sentAt)} · ${p.method}`} v={fmtMoney(p.amount)} />
+                  ))}
+                  <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
+                  <KeyValue k="Paid out this month" v={<Text style={{ fontWeight: '700', color: colors.text, fontSize: 15 }}>{fmtMoney(sum.paidOut)}</Text>} />
+                </>
+              ) : (
+                <Muted>No payouts this month.</Muted>
+              )}
+              <Muted style={{ fontSize: 12 }}>
+                Pretend data. Later these come from Turo’s payment emails in Gmail, so payouts may land a few days after the
+                trips they cover.
+              </Muted>
+            </Card>
+          </>
+        ) : null}
+      </SlideOnChange>
     </Screen>
   );
 }

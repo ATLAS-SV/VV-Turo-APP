@@ -5,6 +5,7 @@ import { addMonths, monthLabel } from '../logic/money';
 import type { Booking, Car } from '../logic/types';
 import { carName } from '../state/AppStore';
 import { colors } from './components';
+import { SlideOnChange } from './motion';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -46,47 +47,49 @@ export function BookingCalendar({
           </Text>
         ))}
       </View>
-      {monthGrid(month).map((week, wi) => (
-        <View key={wi} style={{ flexDirection: 'row' }}>
-          {week.map((day, di) => {
-            if (!day) return <View key={di} style={{ flex: 1 }} />;
-            const dayBookings = bookingsOnDay(bookings, day);
-            const isSel = !!selected && sameDay(day, selected);
-            const isToday = sameDay(day, now);
-            return (
-              <Pressable
-                key={di}
-                onPress={() => onSelect(isSel ? null : day)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSel }}
-                accessibilityLabel={`${day.toDateString()}: ${dayBookings.length ? dayBookings.map((b) => carName(cars.find((c) => c.id === b.carId))).join(', ') : 'no bookings'}`}
-                style={{
-                  flex: 1,
-                  minHeight: 46,
-                  margin: 1,
-                  borderRadius: 8,
-                  paddingTop: 3,
-                  alignItems: 'center',
-                  gap: 2,
-                  backgroundColor: isSel ? colors.primary : 'transparent',
-                  borderWidth: isToday && !isSel ? 1.5 : 0,
-                  borderColor: colors.primary,
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: isToday || isSel ? '800' : '500', color: isSel ? '#fff' : colors.text }}>{day.getDate()}</Text>
-                <View style={{ width: '80%', gap: 2 }}>
-                  {dayBookings.slice(0, 3).map((b) => (
-                    <View key={b.id} style={{ height: 4, borderRadius: 2, backgroundColor: isSel ? '#fff' : colorOf(b.carId) }} />
-                  ))}
-                  {dayBookings.length > 3 ? (
-                    <Text style={{ fontSize: 9, textAlign: 'center', color: isSel ? '#fff' : colors.muted }}>+{dayBookings.length - 3}</Text>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
+      <SlideOnChange value={month}>
+        {monthGrid(month).map((week, wi) => (
+          <View key={wi} style={{ flexDirection: 'row' }}>
+            {week.map((day, di) => {
+              if (!day) return <View key={di} style={{ flex: 1 }} />;
+              const dayBookings = bookingsOnDay(bookings, day);
+              const isSel = !!selected && sameDay(day, selected);
+              const isToday = sameDay(day, now);
+              return (
+                <Pressable
+                  key={di}
+                  onPress={() => onSelect(isSel ? null : day)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSel }}
+                  accessibilityLabel={`${day.toDateString()}: ${dayBookings.length ? dayBookings.map((b) => carName(cars.find((c) => c.id === b.carId))).join(', ') : 'no bookings'}`}
+                  style={{
+                    flex: 1,
+                    minHeight: 46,
+                    margin: 1,
+                    borderRadius: 8,
+                    paddingTop: 3,
+                    alignItems: 'center',
+                    gap: 2,
+                    backgroundColor: isSel ? colors.primary : 'transparent',
+                    borderWidth: isToday && !isSel ? 1.5 : 0,
+                    borderColor: colors.primary,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: isToday || isSel ? '800' : '500', color: isSel ? '#fff' : colors.text }}>{day.getDate()}</Text>
+                  <View style={{ width: '80%', gap: 2 }}>
+                    {dayBookings.slice(0, 3).map((b) => (
+                      <View key={b.id} style={{ height: 4, borderRadius: 2, backgroundColor: isSel ? '#fff' : colorOf(b.carId) }} />
+                    ))}
+                    {dayBookings.length > 3 ? (
+                      <Text style={{ fontSize: 9, textAlign: 'center', color: isSel ? '#fff' : colors.muted }}>+{dayBookings.length - 3}</Text>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+      </SlideOnChange>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4, paddingTop: 4 }}>
         {cars.map((c) => (
           <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>

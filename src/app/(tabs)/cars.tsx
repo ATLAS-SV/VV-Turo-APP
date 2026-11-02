@@ -4,6 +4,7 @@ import { useStore } from '../../state/AppStore';
 import { BookingsList } from '../../ui/BookingsList';
 import { CarsList } from '../../ui/CarsList';
 import { colors } from '../../ui/components';
+import { SlideOnChange } from '../../ui/motion';
 
 /** Cars and Bookings in one tab, with a switch at the top. Open bookings directly with /cars?view=bookings. */
 export default function CarsAndBookings() {
@@ -31,7 +32,10 @@ export default function CarsAndBookings() {
           {segment(bookingsLabel, showBookings, 'bookings')}
         </View>
       </View>
-      {showBookings ? <BookingsList /> : <CarsList />}
+      {/* Bookings sits to the right of Cars: switching slides the list in from that side. */}
+      <SlideOnChange value={showBookings ? 'b-bookings' : 'a-cars'} style={{ flex: 1 }} distance={48}>
+        {showBookings ? <BookingsList /> : <CarsList />}
+      </SlideOnChange>
     </View>
   );
 }

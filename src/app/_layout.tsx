@@ -31,10 +31,10 @@ function RootStack() {
           <Stack.Screen name="booking/[id]" options={{ title: 'Booking', ...EXPANDED_PAGE }} />
           <Stack.Screen name="tasks" options={{ title: 'Tasks', ...EXPANDED_PAGE }} />
           <Stack.Protected guard={isExec}>
-            <Stack.Screen name="activity" options={{ title: 'Activity log' }} />
-            <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-            <Stack.Screen name="team" options={{ title: 'Team & PINs' }} />
-            <Stack.Screen name="fleet" options={{ title: 'Cars' }} />
+            <Stack.Screen name="activity" options={{ title: 'Activity log', ...EXPANDED_PAGE }} />
+            <Stack.Screen name="settings" options={{ title: 'Settings', ...EXPANDED_PAGE }} />
+            <Stack.Screen name="team" options={{ title: 'Team & PINs', ...EXPANDED_PAGE }} />
+            <Stack.Screen name="fleet" options={{ title: 'Cars', ...EXPANDED_PAGE }} />
           </Stack.Protected>
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>

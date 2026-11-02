@@ -1,14 +1,21 @@
 // Motion: (1) a tapped box/card expands to fill the screen and becomes the page it opens;
 // (2) swipe left/right on a tab page to move to the neighbouring tab.
 // Built on React Native's own Animated + PanResponder, so it works the same on iPhone and the web app.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
 import { colors } from './components';
 import { ExpandCtx, type Expand } from './expandContext';
 
 // ---------- (1) expand a box into its page ----------
 
 type Rect = { x: number; y: number; w: number; h: number };
+
+// The phone's Reduce Motion setting, known ahead of time so animations can start instantly.
+let reduceMotion = false;
+AccessibilityInfo.isReduceMotionEnabled()
+  .then((v) => (reduceMotion = v))
+  .catch(() => {});
+AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => (reduceMotion = v));
 export { useExpand } from './expandContext';
 
 const EXPAND_MS = 280;
@@ -19,18 +26,11 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
   const [anim, setAnim] = useState<{ rect: Rect; radius: number; color: string } | null>(null);
   const [progress] = useState(() => new Animated.Value(0));
   const [fade] = useState(() => new Animated.Value(1));
-  const reduceMotion = useRef(false);
   const busy = useRef(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => (reduceMotion.current = v)).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (v) => (reduceMotion.current = v));
-    return () => sub.remove();
-  }, []);
 
   const expand = useCallback<Expand>(
     (from, go, opts = {}) => {
-      if (!from || reduceMotion.current || busy.current) return go();
+      if (!from || reduceMotion || busy.current) return go();
       busy.current = true;
       from.measureInWindow((x, y, w, h) => {
         if (!w || !h) {
@@ -217,3 +217,29 @@ export function SwipeTabs({
 }
 
 const styles = StyleSheet.create({ fill: { flex: 1 } });
+
+// ---------- (3) slide content when a value changes (months, Cars/Bookings switch) ----------
+
+/**
+ * When `value` changes, the content slides in from the side you're moving toward
+ * (later value: from the right; earlier: from the left) and fades up.
+ */
+export function SlideOnChange({ value, children, distance = 36, style }: { value: string; children: ReactNode; distance?: number; style?: ViewStyle }) {
+  const [tx] = useState(() => new Animated.Value(0));
+  const [op] = useState(() => new Animated.Value(1));
+  const prev = useRef(value);
+  // Layout effect: set the starting offset before the new content is painted (no flash).
+  useLayoutEffect(() => {
+    if (prev.current === value) return;
+    const dir = value > prev.current ? 1 : -1;
+    prev.current = value;
+    if (reduceMotion) return;
+    tx.setValue(dir * distance);
+    op.setValue(0.2);
+    Animated.parallel([
+      Animated.timing(tx, { toValue: 0, duration: 260, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(op, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+    ]).start();
+  }, [value, distance, tx, op]);
+  return <Animated.View style={[style, { transform: [{ translateX: tx }], opacity: op }]}>{children}</Animated.View>;
+}

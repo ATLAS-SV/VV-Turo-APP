@@ -144,8 +144,15 @@ export function KeyValue({ k, v }: { k: string; v: ReactNode }) {
 }
 
 export function ListItem({ icon, label, sub, onPress, right }: { icon: IconName; label: string; sub?: string; onPress?: () => void; right?: ReactNode }) {
+  const ref = useRef<HostInstance>(null);
+  const expand = useExpand();
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [s.listItem, { opacity: pressed ? 0.7 : 1 }]}>
+    <Pressable
+      ref={ref}
+      onPress={onPress ? () => expand(ref.current, onPress, { radius: 8 }) : undefined}
+      disabled={!onPress}
+      style={({ pressed }) => [s.listItem, { opacity: pressed ? 0.7 : 1 }]}
+    >
       <Ionicons name={icon} size={20} color={colors.primary} />
       <View style={{ flex: 1 }}>
         <Text style={[s.kvValue, { textAlign: 'left' }]}>{label}</Text>

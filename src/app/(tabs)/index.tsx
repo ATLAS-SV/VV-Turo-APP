@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import { Pressable, ScrollView, Text, View, type HostInstance } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn, tomorrow } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
@@ -26,6 +26,8 @@ export default function OverviewScreen() {
   const now = useNow(30_000);
   const tasks = useTasks();
   const items = useMemo(() => earningItems(bookings, earningExtras), [bookings, earningExtras]);
+  const todoRef = useRef<HostInstance>(null);
+  const expand = useExpand();
   if (!currentUser) return null;
 
   const isExec = currentUser.role === 'executive';
@@ -92,6 +94,7 @@ export default function OverviewScreen() {
           badge={alerts.length + openTasks.length ? `${alerts.length + openTasks.length}` : undefined}
           badgeTone={overdue.length || alerts.length ? 'warn' : 'neutral'}
           onPress={() => router.push('/tasks')}
+          boxRef={todoRef}
           headerOnly
         >
           <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
@@ -101,20 +104,14 @@ export default function OverviewScreen() {
             <Stat n={openTasks.length} label="open tasks" />
           </View>
           {alertRows.map((a, i) => (
-            <Pressable key={`a${i}`} onPress={() => router.push(a.to)} style={rowStyle}>
-              <Ionicons name={a.icon} size={15} color={colors.unlocked} />
-              <Text style={rowText} numberOfLines={1}>
-                {a.text}
-              </Text>
-              <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-            </Pressable>
+            <AlertRow key={`a${i}`} alert={a} />
           ))}
           {taskRows.map((t) => (
             <CompactTask key={t.id} t={t} now={now} carLabel={t.carId ? nameOf(t.carId) : ''} onDone={() => completeTask(t.id, true)} />
           ))}
           {!alertRows.length && !taskRows.length ? <Muted style={{ fontSize: 13 }}>Nothing urgent. 👍</Muted> : null}
           {hiddenCount > 0 ? (
-            <Pressable onPress={() => router.push('/tasks')}>
+            <Pressable onPress={() => expand(todoRef.current, () => router.push('/tasks'))}>
               <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>+{hiddenCount} more · See all</Text>
             </Pressable>
           ) : null}
@@ -244,6 +241,21 @@ function MapBox({ inLot, out }: { inLot: number; out: number }) {
   );
 }
 
+/** A "needs attention" line; tapping it grows the row into the page it opens. */
+function AlertRow({ alert }: { alert: Alert }) {
+  const ref = useRef<HostInstance>(null);
+  const expand = useExpand();
+  return (
+    <Pressable ref={ref} onPress={() => expand(ref.current, () => router.push(alert.to), { radius: 8 })} style={rowStyle}>
+      <Ionicons name={alert.icon} size={15} color={colors.unlocked} />
+      <Text style={rowText} numberOfLines={1}>
+        {alert.text}
+      </Text>
+      <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+    </Pressable>
+  );
+}
+
 /** One-line task with a tick box. */
 function CompactTask({ t, now, carLabel, onDone }: { t: TaskWithState; now: Date; carLabel: string; onDone: () => void }) {
   const overdue = t.status === 'overdue';
@@ -284,6 +296,7 @@ function Box({
   headerOnly,
   badge,
   badgeTone = 'neutral',
+  boxRef,
 }: {
   icon: IconName;
   title: string;
@@ -293,8 +306,11 @@ function Box({
   headerOnly?: boolean;
   badge?: string;
   badgeTone?: 'warn' | 'neutral';
+  /** Lets the parent expand this box from elsewhere (e.g. "See all"). */
+  boxRef?: RefObject<HostInstance | null>;
 }) {
-  const ref = useRef<HostInstance>(null);
+  const ownRef = useRef<HostInstance>(null);
+  const ref = boxRef ?? ownRef;
   const expand = useExpand();
   const header = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
