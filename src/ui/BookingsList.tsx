@@ -28,7 +28,7 @@ const TICKET_H = 124;
 const PEEK = 84;
 const REVEAL_GAP = 10;
 
-type TicketProps = { now: Date; showMoney: boolean; showGuest: boolean; carLabel: (b: Booking) => string };
+export type TicketProps = { now: Date; showMoney: boolean; showGuest: boolean; carLabel: (b: Booking) => string };
 
 /** Schedule built from Turo booking emails. Employees see trip times only, no money or guest details. */
 export function BookingsList() {
@@ -103,7 +103,7 @@ export function BookingsList() {
  * a ticket slides the ones below it down so it shows in full; tapping it again opens the booking.
  * The last ticket is always fully visible, so one tap opens it.
  */
-function TicketStack({ list, ...props }: { list: Booking[] } & TicketProps) {
+export function TicketStack({ list, ...props }: { list: Booking[] } & TicketProps) {
   const [focus, setFocus] = useState<string | null>(null);
   return (
     <View>
