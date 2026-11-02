@@ -18,14 +18,13 @@ import { Button, Card, Chip, colors, fmtAgo, fmtClock, fmtMoney, fmtTime, type I
 import { CHECK_IN_LABEL } from '../../ui/labels';
 import { TaskRow } from '../../ui/TaskRow';
 import { getAppearance, theme } from '../../ui/theme';
+import { fmtDay, Perforation, stubColor, ticketShadow } from '../../ui/ticket';
 import { UnlockPrompt } from '../../ui/UnlockPrompt';
 
 // Placeholder until the guest check-in web page is deployed.
 const CHECK_IN_BASE_URL = 'https://checkin.example.com/c/';
 // Used until each booking's Turo chat link comes in from the Turo emails.
 const TURO_FALLBACK_URL = 'https://turo.com';
-
-const fmtDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
 /** "Starts in 20 min", "On trip · back Thu 3:44 AM", … shown above the ticket. */
 function statusLine(b: Booking, now: Date) {
@@ -85,9 +84,6 @@ export default function BookingDetail() {
   const look = getAppearance();
   const band = look === 'light' ? theme.primary : null;
   const onBand = band ? '#FFFFFF' : colors.text;
-  // Ticket notches: half-circle bites out of each side of the stub line. Over solid pages they take the
-  // page color; over frosted glass they're a darker/lighter tint so they still read as holes.
-  const notch = NOTCH[look]();
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string } | void>, okMsg: string) => {
     const r = await fn();
@@ -116,7 +112,7 @@ export default function BookingDetail() {
       {/* ---------- Ticket ---------- */}
       <PopIn>
         <View style={[{ backgroundColor: colors.card, borderRadius: radius() + 6, overflow: 'hidden', borderWidth: isGlass() ? 1 : 0, borderColor: colors.border }, ticketShadow(), glassFx()]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, backgroundColor: look === 'light' ? '#FBF7EA' : colors.neutralBg }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, backgroundColor: stubColor() }}>
             <Text style={{ fontFamily: LOGO_SERIF, fontSize: 22, fontWeight: '700', color: colors.primary }}>VV</Text>
             <Text style={{ fontSize: 12, fontWeight: '800', color: look === 'light' ? '#92400E' : colors.muted, letterSpacing: 0.4 }}>RES #{b.reservationId}</Text>
           </View>
@@ -144,7 +140,7 @@ export default function BookingDetail() {
 
           {!b.canceled && stampTasks.length ? (
             <>
-              <Perforation notch={notch} />
+              <Perforation />
               <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 16 }}>
                 <ChecklistStamps tasks={stampTasks} now={now} />
               </View>
@@ -359,11 +355,6 @@ export default function BookingDetail() {
   );
 }
 
-function ticketShadow(): ViewStyle {
-  if (isGlass()) return {};
-  return { shadowColor: '#1E0E45', shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 6 };
-}
-
 function TimeBlock({ label, iso, right }: { label: string; iso: string; right?: boolean }) {
   const [time, ampm] = fmtClock(iso).split(/\s(?=[AP]M$)/i);
   return (
@@ -385,26 +376,6 @@ function Field({ label, value, style }: { label: string; value: string; style?: 
       <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }} numberOfLines={1}>
         {value}
       </Text>
-    </View>
-  );
-}
-
-const NOTCH: Record<ReturnType<typeof getAppearance>, () => { fill: string; edge: string }> = {
-  light: () => ({ fill: '#EAE4F4', edge: '#D6CDE9' }),
-  dark: () => ({ fill: '#12062E', edge: colors.border }),
-  glass: () => ({ fill: 'rgba(12,2,40,0.7)', edge: 'rgba(255,255,255,0.3)' }),
-  glassLight: () => ({ fill: 'rgba(90,60,170,0.26)', edge: 'rgba(255,255,255,0.95)' }),
-};
-const NOTCH_SIZE = 32;
-
-/** Dashed tear line with a round notch bitten out of each edge, like a ticket stub. */
-function Perforation({ notch }: { notch: { fill: string; edge: string } }) {
-  const circle = { position: 'absolute' as const, width: NOTCH_SIZE, height: NOTCH_SIZE, borderRadius: NOTCH_SIZE / 2, backgroundColor: notch.fill, borderWidth: 1.5, borderColor: notch.edge };
-  return (
-    <View style={{ height: NOTCH_SIZE, justifyContent: 'center' }}>
-      <View style={[circle, { left: -NOTCH_SIZE / 2 }]} />
-      <View style={[circle, { right: -NOTCH_SIZE / 2 }]} />
-      <View style={{ marginHorizontal: 22, borderTopWidth: 2, borderStyle: 'dashed', borderColor: colors.border }} />
     </View>
   );
 }
