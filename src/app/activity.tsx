@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import type { ActivityAction } from '../logic/types';
 import { ACTION_LABELS, actorLabel, carName, useStore } from '../state/AppStore';
 import { Button, Card, colors, fmtTime, type IconName, Muted, Row, Screen } from '../ui/components';
+import { matchesQuery, SearchBar } from '../ui/filters';
 
 const ICONS: Record<ActivityAction, IconName> = {
   lock: 'lock-closed',
@@ -38,11 +39,16 @@ const FILTERS: { key: string; label: string; match: (a: ActivityAction) => boole
 export default function ActivityLog() {
   const { activity, cars } = useStore();
   const [filter, setFilter] = useState('all');
+  const [query, setQuery] = useState('');
   const f = FILTERS.find((x) => x.key === filter)!;
-  const list = activity.filter((e) => f.match(e.action)).slice(0, 300);
+  const list = activity
+    .filter((e) => f.match(e.action))
+    .filter((e) => matchesQuery(query, ACTION_LABELS[e.action], e.carId ? carName(cars.find((c) => c.id === e.carId)) : null, e.detail, actorLabel(e.actor, e.action)))
+    .slice(0, 300);
 
   return (
     <Screen>
+      <SearchBar value={query} onChange={setQuery} placeholder="Search by car, person or detail" />
       <Row style={{ flexWrap: 'wrap' }}>
         {FILTERS.map((x) => (
           <Button key={x.key} label={x.label} variant={filter === x.key ? 'primary' : 'secondary'} onPress={() => setFilter(x.key)} style={{ paddingVertical: 6, minHeight: 34 }} />
@@ -65,7 +71,7 @@ export default function ActivityLog() {
           </Card>
         ))
       ) : (
-        <Muted>Nothing logged yet.</Muted>
+        <Muted>{query || filter !== 'all' ? 'Nothing matches.' : 'Nothing logged yet.'}</Muted>
       )}
     </Screen>
   );

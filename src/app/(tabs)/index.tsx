@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useMemo, useRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type HostInstance } from 'react-native';
-import { bookingStatus } from '../../logic/bookings';
+import { bookingStatus, pickupsOn, returnsOn } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
 import { openShift } from '../../logic/hours';
 import { earningItems, monthKey, summarizeMonth } from '../../logic/money';
@@ -16,7 +16,7 @@ import { Bouncy, glassFx, isGlass, PopIn, radius } from '../../ui/bubble';
 import { colors, fmtClock, type IconName, Muted } from '../../ui/components';
 import { useExpand } from '../../ui/expandContext';
 import { fmtDay, Perforation, stubColor, ticketShadow } from '../../ui/ticket';
-import { getAppearance, theme } from '../../ui/theme';
+import { getAppearance, isLightLook, theme } from '../../ui/theme';
 
 type Alert = { icon: IconName; text: string; to: Href };
 
@@ -139,8 +139,13 @@ export default function OverviewScreen() {
           </View>
         </PopIn>
 
+        {/* Mini calendar: the next two weeks */}
+        <PopIn delay={110}>
+          <MiniCalendar bookings={bookings} now={now} tasks={tasks} />
+        </PopIn>
+
         {/* What needs you */}
-        <PopIn delay={140}>
+        <PopIn delay={160}>
           <View style={{ gap: 8 }}>
             <SectionLabel>{pass && bookingStatus(pass, now) === 'upcoming' ? `Needs you before ${fmtClock(pass.tripStart)}` : 'Needs you'}</SectionLabel>
             <View style={[cardStyle(), { paddingVertical: 4 }]}>
@@ -303,7 +308,7 @@ function DayBar({ now, highlight, tasks, bookings }: { now: Date; highlight: Boo
   for (const b of bookings) {
     if (b.canceled) continue;
     const big = b.id === highlight.id;
-    if (today(b.tripStart)) dots.push({ key: `p${b.id}`, at: pos(Date.parse(b.tripStart)), color: colors.primary, size: big ? 16 : 12, label: `Pickup ${fmtClock(b.tripStart)}` });
+    if (today(b.tripStart)) dots.push({ key: `p${b.id}`, at: pos(Date.parse(b.tripStart)), color: pickupColor(), size: big ? 16 : 12, label: `Pickup ${fmtClock(b.tripStart)}` });
     if (today(b.tripEnd)) dots.push({ key: `r${b.id}`, at: pos(Date.parse(b.tripEnd)), color: colors.locked, size: big ? 16 : 12, label: `Return ${fmtClock(b.tripEnd)}` });
   }
   for (const t of tasks) {
@@ -347,6 +352,102 @@ function DayBar({ now, highlight, tasks, bookings }: { now: Date; highlight: Boo
           </Text>
         ))}
       </Row>
+    </View>
+  );
+}
+
+/**
+ * Two weeks at a glance, starting this Sunday. Each day shows a dot per pickup (purple) and return
+ * (green), and a gold dot when a task is overdue or due that day. Tap a day to open it in Bookings.
+ */
+function MiniCalendar({ bookings, now, tasks }: { bookings: Booking[]; now: Date; tasks: TaskWithState[] }) {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 12);
+  const days = Array.from({ length: 14 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, 12));
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const todayKey = key(now);
+  const range = `${days[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${days[13].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+
+  return (
+    <View style={[cardStyle(), { paddingVertical: 12, gap: 8 }]}>
+      <Row>
+        <View>
+          <SectionLabel>Next 2 weeks</SectionLabel>
+          <Text style={{ fontSize: 12, color: colors.muted, marginTop: 1 }}>{range}</Text>
+        </View>
+        <Pressable onPress={() => router.push('/cars?view=bookings')} accessibilityRole="button" hitSlop={8}>
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>Full calendar ›</Text>
+        </Pressable>
+      </Row>
+      <View style={{ flexDirection: 'row' }}>
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: colors.muted }}>
+            {d}
+          </Text>
+        ))}
+      </View>
+      {[0, 1].map((w) => (
+        <View key={w} style={{ flexDirection: 'row' }}>
+          {days.slice(w * 7, w * 7 + 7).map((d) => {
+            const k = key(d);
+            const out = pickupsOn(bookings, d).length;
+            const back = returnsOn(bookings, d).length;
+            const due = tasks.some((t) => !t.doneAt && key(new Date(t.dueAt)) === k);
+            const isToday = k === todayKey;
+            const past = k < todayKey;
+            const label = `${d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}: ${out} pickups, ${back} returns${due ? ', tasks due' : ''}`;
+            return (
+              <Pressable
+                key={k}
+                onPress={() => router.push(`/cars?view=bookings&day=${k}` as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 4, gap: 3, opacity: past ? 0.45 : 1 }}
+              >
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isToday ? colors.primary : 'transparent',
+                    borderWidth: isToday ? 0 : out || back ? 1.5 : 0,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: isToday ? '800' : '600', color: isToday ? colors.primaryText : colors.text }}>{d.getDate()}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 2, height: 6 }}>
+                  {Array.from({ length: Math.min(out, 3) }).map((_, i) => (
+                    <View key={`o${i}`} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: pickupColor() }} />
+                  ))}
+                  {Array.from({ length: Math.min(back, 3) }).map((_, i) => (
+                    <View key={`b${i}`} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.locked }} />
+                  ))}
+                  {due && !out && !back ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.accent }} /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+      <View style={{ flexDirection: 'row', gap: 14, justifyContent: 'center' }}>
+        <Legend color={pickupColor()} label="Pickup" />
+        <Legend color={colors.locked} label="Return" />
+        <Legend color={theme.accent} label="Task due" />
+      </View>
+    </View>
+  );
+}
+
+/** Pickups: purple in the light looks; lavender in the dark ones, where the primary color is gold (gold = task due). */
+const pickupColor = () => (isLightLook() ? colors.primary : colors.secondary);
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color }} />
+      <Text style={{ fontSize: 11, color: colors.muted }}>{label}</Text>
     </View>
   );
 }

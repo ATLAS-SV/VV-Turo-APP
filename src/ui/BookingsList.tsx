@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, type HostInstance } from 'react-native';
 import { bookingsOnDay, bookingStatus } from '../logic/bookings';
@@ -12,6 +12,7 @@ import { LOGO_SERIF } from './Brand';
 import { Bouncy, glassFx, isGlass, PopIn, prefersReducedMotion, radius } from './bubble';
 import { Card, Chip, colors, fmtClock, fmtMoney, fmtTime, Muted, Row, Screen, SectionTitle, Title } from './components';
 import { useExpand } from './expandContext';
+import { FilterChips, matchesQuery, NoMatches, SearchBar, type FilterOption } from './filters';
 import { fmtDay, stubColor, VPerforation } from './ticket';
 import { theme } from './theme';
 
@@ -28,6 +29,8 @@ const TICKET_H = 124;
 const PEEK = 84;
 const REVEAL_GAP = 10;
 
+type BookingFilter = 'all' | 'needs' | 'upcoming' | 'active' | 'completed' | 'canceled';
+
 export type TicketProps = { now: Date; showMoney: boolean; showGuest: boolean; carLabel: (b: Booking) => string };
 
 /** Schedule built from Turo booking emails. Employees see trip times only, no money or guest details. */
@@ -37,20 +40,53 @@ export function BookingsList() {
   const showMoney = can(currentUser, 'viewEarnings');
   const showGuest = can(currentUser, 'viewGuestDetails');
 
-  const [month, setMonth] = useState(() => monthKey(new Date()));
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const sorted = [...bookings].sort((a, b) => Date.parse(a.tripStart) - Date.parse(b.tripStart));
+  // ?day=YYYY-MM-DD (e.g. from the Overview's mini calendar) opens that day.
+  const { day } = useLocalSearchParams<{ day?: string }>();
+  const dayParam = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T12:00:00`) : null;
+  const [month, setMonth] = useState(() => monthKey(dayParam ?? new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date | null>(dayParam);
+  const [shownDay, setShownDay] = useState(day);
+  if (day !== shownDay) {
+    // A new day was asked for while this list was already open.
+    setShownDay(day);
+    if (dayParam) {
+      setSelectedDay(dayParam);
+      setMonth(monthKey(dayParam));
+    }
+  }
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<BookingFilter>('all');
+
+  // Search (guest, car, plate, reservation #) and filter apply to the calendar and the lists.
+  const carOf = (b: Booking) => cars.find((c) => c.id === b.carId);
+  const needsLink = (b: Booking) => bookingStatus(b, now) === 'upcoming' && b.checkIn.state === 'waiting' && !b.linkSentAt;
+  const searched = bookings.filter((b) => {
+    const car = carOf(b);
+    return matchesQuery(query, showGuest ? b.guestFirstName : null, carName(car), car?.plate, showGuest ? b.reservationId : null);
+  });
+  const filterOptions: FilterOption<BookingFilter>[] = [
+    { key: 'all', label: 'All', count: searched.filter((b) => showGuest || !b.canceled).length },
+    ...(showGuest ? [{ key: 'needs' as const, label: 'Link not sent', count: searched.filter(needsLink).length, tone: 'warn' as const }] : []),
+    { key: 'upcoming', label: 'Upcoming', count: searched.filter((b) => bookingStatus(b, now) === 'upcoming').length },
+    { key: 'active', label: 'On trip', count: searched.filter((b) => bookingStatus(b, now) === 'active').length },
+    { key: 'completed', label: 'Completed', count: searched.filter((b) => bookingStatus(b, now) === 'completed').length },
+    ...(showGuest ? [{ key: 'canceled' as const, label: 'Canceled', count: searched.filter((b) => b.canceled).length }] : []),
+  ];
+  const visible = searched.filter((b) => (filter === 'all' ? true : filter === 'needs' ? needsLink(b) : bookingStatus(b, now) === filter));
+  const sorted = [...visible].sort((a, b) => Date.parse(a.tripStart) - Date.parse(b.tripStart));
   const upcomingEarnings = bookings
     .filter((b) => ['upcoming', 'active'].includes(bookingStatus(b, now)))
     .reduce((s, b) => s + b.earnings, 0);
 
-  const dayList = selectedDay ? bookingsOnDay(bookings, selectedDay) : [];
+  const dayList = selectedDay ? bookingsOnDay(visible, selectedDay) : [];
   const ticketProps: TicketProps = { now, showMoney, showGuest, carLabel: (b) => carName(cars.find((c) => c.id === b.carId)) };
 
   return (
     <Screen>
+      <SearchBar value={query} onChange={setQuery} placeholder={showGuest ? 'Search guests, cars or reservation #' : 'Search cars'} />
+      <FilterChips options={filterOptions} value={filter} onChange={setFilter} />
       <BookingCalendar
-        bookings={bookings}
+        bookings={visible}
         cars={cars}
         month={month}
         onMonth={setMonth}
@@ -88,6 +124,15 @@ export function BookingsList() {
               </View>
             );
           })}
+          {!sorted.length && bookings.length ? (
+            <NoMatches
+              what="bookings"
+              onClear={() => {
+                setQuery('');
+                setFilter('all');
+              }}
+            />
+          ) : null}
           <Muted style={{ fontSize: 12 }}>
             {showGuest ? 'Tap a ticket to pull it out of the stack, tap again to open it. ' : ''}Pretend bookings. Later these are filled in automatically from Turo emails in
             Gmail.

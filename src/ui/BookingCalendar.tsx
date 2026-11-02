@@ -29,6 +29,8 @@ export function BookingCalendar({
   now: Date;
 }) {
   const colorOf = (carId: string) => cars.find((c) => c.id === carId)?.color ?? colors.primary;
+  const inMonth = new Set(bookings.filter((b) => !b.canceled && (b.tripStart.startsWith(month) || b.tripEnd.startsWith(month))).map((b) => b.carId));
+  const legendCars = cars.filter((c) => inMonth.has(c.id));
   return (
     <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 10, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -91,13 +93,17 @@ export function BookingCalendar({
         ))}
       </SlideOnChange>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4, paddingTop: 4 }}>
-        {cars.map((c) => (
+        {legendCars.slice(0, LEGEND_MAX).map((c) => (
           <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View style={{ width: 12, height: 4, borderRadius: 2, backgroundColor: c.color ?? colors.primary }} />
             <Text style={{ fontSize: 11, color: colors.muted }}>{carName(c)}</Text>
           </View>
         ))}
+        {legendCars.length > LEGEND_MAX ? <Text style={{ fontSize: 11, color: colors.muted }}>+{legendCars.length - LEGEND_MAX} more</Text> : null}
       </View>
     </View>
   );
 }
+
+/** With a big fleet the color key only lists cars that have trips this month, up to this many. */
+const LEGEND_MAX = 6;

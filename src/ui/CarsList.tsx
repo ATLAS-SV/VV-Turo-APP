@@ -6,11 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nextBookingForCar } from '../logic/bookings';
 import { distanceMeters, formatDistance, isInLot, polygonCenter } from '../logic/geo';
 import { can, canUnlockCar } from '../logic/permissions';
-import type { Booking, Car } from '../logic/types';
+import type { Booking, Car, CarTelemetry } from '../logic/types';
 import { carName, useNow, useStore } from '../state/AppStore';
 import { Bouncy, glassFx, isGlass, PopIn } from './bubble';
 import { colors, fmtAgo, fmtClock, Muted } from './components';
 import { useExpand } from './expandContext';
+import { FilterChips, matchesQuery, NoMatches, SearchBar, type FilterOption } from './filters';
 import LogoGradient from './LogoGradient';
 import { LOGO } from './logoColors';
 import { getAppearance } from './theme';
@@ -30,12 +31,34 @@ export function CarsList() {
   const [refreshing, setRefreshing] = useState(false);
   const [lockingAll, setLockingAll] = useState(false);
   const showGuest = can(currentUser, 'viewGuestDetails');
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<CarFilter>('all');
 
   const unlocked = cars.filter((c) => telemetry[c.id]?.lockState === 'unlocked');
   const inLot = cars.filter((c) => telemetry[c.id] && isInLot(telemetry[c.id].position, settings.homeLot));
   const driving = cars.filter((c) => telemetry[c.id]?.moving);
   const away = cars.length - inLot.length - driving.length;
   const band = getAppearance() === 'light';
+
+  // Built to scale past a handful of cars: every car's key facts, then search + filter + sort.
+  const rows = cars.map((car) => {
+    const t = telemetry[car.id];
+    const next = nextBookingForCar(bookings, car.id, now);
+    const lot = !!t && isInLot(t.position, settings.homeLot);
+    return { car, next, lot, out: !lot, open: t?.lockState === 'unlocked', needs: needsYou(t, next, now, showGuest) };
+  });
+  const filterOptions: FilterOption<CarFilter>[] = [
+    { key: 'all', label: 'All', count: rows.length },
+    { key: 'needs', label: 'Needs you', count: rows.filter((r) => r.needs).length, tone: 'warn' },
+    { key: 'lot', label: 'In lot', count: rows.filter((r) => r.lot).length },
+    { key: 'out', label: 'Out', count: rows.filter((r) => r.out).length },
+    { key: 'unlocked', label: 'Unlocked', count: rows.filter((r) => r.open).length, tone: 'warn' },
+  ];
+  const shown = rows
+    .filter((r) => (filter === 'all' ? true : filter === 'needs' ? r.needs : filter === 'lot' ? r.lot : filter === 'out' ? r.out : r.open))
+    .filter((r) => matchesQuery(query, carName(r.car), r.car.make, r.car.model, r.car.year, r.car.plate, showGuest ? r.next?.guestFirstName : null))
+    // Cars that need you first, then unlocked ones, then by name.
+    .sort((a, b) => Number(b.needs) - Number(a.needs) || Number(b.open) - Number(a.open) || carName(a.car).localeCompare(carName(b.car)));
 
   const lockAll = async () => {
     setLockingAll(true);
@@ -79,21 +102,27 @@ export function CarsList() {
           />
         </PopIn>
 
-        {cars.map((car, i) => (
-          <View key={car.id}>
-            <Coupler />
-            <PopIn delay={Math.min(i + 1, 6) * 60}>
-              <Carriage
-                car={car}
-                now={now}
-                showGuest={showGuest}
-                next={nextBookingForCar(bookings, car.id, now)}
-                onLock={() => lockCar(car.id)}
-                onUnlock={() => setUnlocking(car.id)}
-              />
+        <View style={{ gap: 10, marginTop: 16, marginBottom: 6 }}>
+          <SearchBar value={query} onChange={setQuery} placeholder="Search cars, plates or guests" />
+          <FilterChips options={filterOptions} value={filter} onChange={setFilter} />
+        </View>
+
+        <View style={{ gap: 12, marginTop: 8 }}>
+          {shown.map(({ car, next }, i) => (
+            <PopIn key={car.id} delay={Math.min(i + 1, 6) * 60}>
+              <Carriage car={car} now={now} showGuest={showGuest} next={next} onLock={() => lockCar(car.id)} onUnlock={() => setUnlocking(car.id)} />
             </PopIn>
-          </View>
-        ))}
+          ))}
+        </View>
+        {!shown.length && cars.length ? (
+          <NoMatches
+            what="cars"
+            onClear={() => {
+              setQuery('');
+              setFilter('all');
+            }}
+          />
+        ) : null}
 
         <Muted style={{ fontSize: 12, textAlign: 'center', marginTop: 16 }}>Pretend data until Smartcar & Zubie are connected. Pull down to refresh.</Muted>
       </ScrollView>
@@ -122,7 +151,7 @@ function Locomotive({
 }) {
   const allLocked = unlocked === 0;
   return (
-    <View style={{ paddingBottom: 9, marginTop: 12 }}>
+    <View style={{ paddingBottom: 16, marginTop: 12 }}>
       {/* cab */}
       <View
         style={{
@@ -195,6 +224,7 @@ function Locomotive({
           <LocoChip label={`${away} away`} />
         </View>
       </View>
+      <Track />
       <Wheels side="left" count={3} size={18} />
       <Wheels side="right" count={2} size={14} />
     </View>
@@ -265,7 +295,7 @@ function Carriage({
   const open = () => expand(ref.current, () => router.push(`/car/${car.id}`), { radius: 18 });
 
   return (
-    <View style={{ paddingBottom: 7 }}>
+    <View style={{ paddingBottom: 16 }}>
       <Bouncy onPress={open} accessibilityRole="button" accessibilityLabel={`${carName(car)}. ${where}. ${lockText}. ${nextText}.`}>
         <View
           ref={ref}
@@ -313,6 +343,7 @@ function Carriage({
           <LockButton unlocked={isUnlocked} busy={busy} allowedUnlock={allowedUnlock} onLock={onLock} onUnlock={onUnlock} carLabel={carName(car)} />
         </View>
       </Bouncy>
+      <Track />
       <Wheels side="left" count={2} size={13} />
       <Wheels side="right" count={2} size={13} />
     </View>
@@ -356,7 +387,7 @@ function LockButton({
 /** A pair (or trio) of wheels peeking out under a carriage. */
 function Wheels({ side, count, size }: { side: 'left' | 'right'; count: number; size: number }) {
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, [side]: 28, flexDirection: 'row', gap: 4 }}>
+    <View pointerEvents="none" style={{ position: 'absolute', bottom: 6, [side]: 28, flexDirection: 'row', gap: 4 }}>
       {Array.from({ length: count }).map((_, i) => (
         <View
           key={i}
@@ -374,13 +405,27 @@ function Wheels({ side, count, size }: { side: 'left' | 'right'; count: number; 
   );
 }
 
-/** The little link between two carriages. */
-function Coupler() {
+/** The short stretch of track each carriage sits on: a rail with crossties under it. */
+function Track() {
   return (
-    <View pointerEvents="none" style={{ height: 10, alignItems: 'center' }}>
-      <View style={{ width: 16, height: 10, borderRadius: 3, backgroundColor: colors.secondary, opacity: 0.6 }} />
+    <View pointerEvents="none" style={{ position: 'absolute', left: -6, right: -6, bottom: 0, height: 8 }}>
+      <View style={{ height: 2, borderRadius: 1, backgroundColor: colors.secondary }} />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 3, marginTop: 1 }}>
+        {Array.from({ length: 26 }).map((_, i) => (
+          <View key={i} style={{ width: 5, height: 5, borderRadius: 1, backgroundColor: colors.secondary, opacity: 0.35 }} />
+        ))}
+      </View>
     </View>
   );
+}
+
+type CarFilter = 'all' | 'needs' | 'lot' | 'out' | 'unlocked';
+
+/** A car needs you when it's unlocked, or a pickup within a day still has no check-in link. */
+function needsYou(t: CarTelemetry | undefined, next: Booking | undefined, now: Date, showGuest: boolean) {
+  if (t?.lockState === 'unlocked') return true;
+  if (!next || !showGuest || Date.parse(next.tripStart) <= now.getTime()) return false;
+  return next.checkIn.state === 'waiting' && !next.linkSentAt && Date.parse(next.tripStart) - now.getTime() < 24 * 3600_000;
 }
 
 /** Short time for a carriage line: "1:38 PM", "tomorrow 10:00 AM", "Thu 10:15 AM". */

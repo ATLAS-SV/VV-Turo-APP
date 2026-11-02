@@ -8,6 +8,7 @@ import { carName, useNow, useStore } from '../../state/AppStore';
 import CarMap from '../../ui/CarMap';
 import { Button, Card, colors, fmtAgo, fmtTime, KeyValue, LockChip, Muted, Row, SectionTitle, Title } from '../../ui/components';
 import { NoSwipeZone, SlideOnChange } from '../../ui/motion';
+import { matchesQuery, SearchBar } from '../../ui/filters';
 import { Bouncy, glassFx, radius } from '../../ui/bubble';
 
 /**
@@ -21,7 +22,10 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const scroller = useRef<ScrollViewInstance>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const lot = polygonCenter(settings.homeLot.polygon);
+  // With a bigger fleet, search narrows the picker and the list (the map still shows every car).
+  const found = cars.filter((c) => matchesQuery(query, carName(c), c.make, c.model, c.year, c.plate));
 
   const where = (car: Car) => {
     const t = telemetry[car.id];
@@ -53,10 +57,11 @@ export default function MapScreen() {
 
       <View style={{ padding: 16, gap: 12 }}>
         {/* Car picker */}
+        {cars.length > 1 ? <SearchBar value={query} onChange={setQuery} placeholder="Find a car" /> : null}
         <NoSwipeZone>
         <ScrollView ref={chipRow} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} accessibilityRole="tablist">
           <PickerChip label="All cars" active={!selected} onPress={() => pick(null)} onX={(x) => (chipX.current.all = x)} />
-          {cars.map((c) => (
+          {found.map((c) => (
             <PickerChip
               key={c.id}
               onX={(x) => (chipX.current[c.id] = x)}
@@ -87,8 +92,9 @@ export default function MapScreen() {
         </SlideOnChange>
 
         {/* Every car on the map */}
-        <SectionTitle>Cars on the map</SectionTitle>
-        {cars.map((c) => {
+        <SectionTitle>{query ? `Matching cars · ${found.length}` : 'Cars on the map'}</SectionTitle>
+        {!found.length ? <Muted>No cars match “{query}”.</Muted> : null}
+        {found.map((c) => {
           const t = telemetry[c.id];
           const active = selected === c.id;
           return (

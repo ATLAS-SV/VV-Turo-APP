@@ -3,6 +3,7 @@ import { Switch, Text, TextInput } from 'react-native';
 import { defaultHomePage, type HomePage, type Role, type User } from '../logic/types';
 import { carName, useStore } from '../state/AppStore';
 import { Button, Card, Chip, colors, Muted, Row, Screen, SectionTitle, Title } from '../ui/components';
+import { matchesQuery, SearchBar } from '../ui/filters';
 
 const HOME_PAGES: { key: HomePage; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -33,6 +34,8 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
   const [newPin, setNewPin] = useState('');
   const [editing, setEditing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [carQuery, setCarQuery] = useState('');
+  const carList = cars.filter((c) => matchesQuery(carQuery, carName(c), c.plate));
 
   return (
     <Card>
@@ -57,8 +60,9 @@ function PersonCard({ user, isMe, showCars }: { user: User; isMe: boolean; showC
       </Row>
       {showCars && user.role === 'employee' ? (
         <>
-          <Muted>Cars they can unlock</Muted>
-          {cars.map((c) => (
+          <Muted>Cars they can unlock · {user.assignedCarIds.length} of {cars.length}</Muted>
+          {cars.length > 6 ? <SearchBar value={carQuery} onChange={setCarQuery} placeholder="Find a car" /> : null}
+          {carList.map((c) => (
             <Row key={c.id} style={{ justifyContent: 'space-between' }}>
               <Text style={{ color: colors.text }}>{carName(c)}</Text>
               <Switch
