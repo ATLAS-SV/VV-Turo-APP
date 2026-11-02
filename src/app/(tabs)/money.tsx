@@ -14,6 +14,7 @@ import { carName, useNow, useStore } from '../../state/AppStore';
 import { Card, colors, fmtMoney, fmtTime, KeyValue, Muted, Row, Screen, SectionTitle } from '../../ui/components';
 import { DonutChart, type DonutSlice } from '../../ui/DonutChart';
 import { SlideOnChange } from '../../ui/motion';
+import { glassFx, radius } from '../../ui/bubble';
 import { EARNING_COLORS, upcomingColor } from '../../ui/earningColors';
 
 /** Earnings by month: big numbers, a donut of where the money came from, by car, and payouts. Executive only. */
@@ -152,7 +153,7 @@ function CategoryBox({ color, label, sub, value, share, muted, wide }: { color: 
       style={{
         flex: wide ? undefined : 1,
         backgroundColor: colors.card,
-        borderRadius: 14,
+        borderRadius: radius(),
         borderWidth: 1,
         borderColor: colors.border,
         padding: 12,
@@ -160,6 +161,7 @@ function CategoryBox({ color, label, sub, value, share, muted, wide }: { color: 
         gap: 4,
         overflow: 'hidden',
         opacity: muted ? 0.85 : 1,
+        ...glassFx(),
       }}
     >
       <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, backgroundColor: color }} />

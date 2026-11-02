@@ -6,18 +6,19 @@ import { theme, type Appearance } from '../ui/theme';
 
 /** Each option shows a small preview of the app in that look, drawn with that look's own colors. */
 const PREVIEW: Record<Appearance, { label: string; sub: string; bg: string; card: string; line: string; text: string; button: string; buttonText: string }> = {
-  light: { label: 'Light', sub: 'Light background, purple buttons', bg: theme.background, card: '#FFFFFF', line: '#E3E5EA', text: '#14171F', button: theme.primary, buttonText: '#FFFFFF' },
-  dark: { label: 'Dark', sub: 'The logo’s deep purple, gold buttons', bg: theme.primaryDark, card: '#2A1856', line: '#3D2B70', text: '#F5EFE0', button: theme.accent, buttonText: theme.primaryDark },
+  light: { label: 'Light', sub: 'Bright and clean', bg: theme.background, card: '#FFFFFF', line: '#E3E5EA', text: '#14171F', button: theme.primary, buttonText: '#FFFFFF' },
+  dark: { label: 'Dark', sub: 'The logo’s purple', bg: theme.primaryDark, card: '#2A1856', line: '#3D2B70', text: '#F5EFE0', button: theme.accent, buttonText: theme.primaryDark },
+  glass: { label: 'Glass', sub: 'Frosted & bubbly', bg: '#2C1270', card: 'rgba(255,255,255,0.14)', line: 'rgba(255,255,255,0.28)', text: '#FBF8FF', button: '#F4CF5E', buttonText: '#24104F' },
 };
 
-/** More → Appearance: switch this phone between light and dark. */
+/** More → Appearance: switch this phone between Light, Dark and Glass. */
 export default function AppearanceScreen() {
   const { appearance, setAppearance } = useStore();
   return (
     <Screen>
       <Muted>Choose how the app looks on this phone. Everyone can pick their own.</Muted>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        {(['light', 'dark'] as const).map((a) => {
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {(['light', 'dark', 'glass'] as const).map((a) => {
           const p = PREVIEW[a];
           const selected = appearance === a;
           return (
@@ -39,13 +40,20 @@ export default function AppearanceScreen() {
               })}
             >
               {/* mini phone */}
-              <View style={{ backgroundColor: p.bg, borderRadius: 10, padding: 8, gap: 6, height: 170 }}>
+              <View style={{ backgroundColor: p.bg, borderRadius: a === 'glass' ? 16 : 10, padding: 8, gap: 6, height: 170, overflow: 'hidden' }}>
+                {a === 'glass' ? (
+                  <>
+                    <View style={{ position: 'absolute', width: 90, height: 90, borderRadius: 45, left: -30, top: 10, backgroundColor: 'rgba(139,92,246,0.55)' }} />
+                    <View style={{ position: 'absolute', width: 70, height: 70, borderRadius: 35, right: -20, bottom: 10, backgroundColor: 'rgba(212,175,55,0.35)' }} />
+                    <View style={{ position: 'absolute', width: 12, height: 12, borderRadius: 6, right: 14, top: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' }} />
+                  </>
+                ) : null}
                 <View style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: theme.primaryDark, borderWidth: 1, borderColor: theme.accent }} />
                 {[0, 1].map((i) => (
-                  <View key={i} style={{ backgroundColor: p.card, borderRadius: 8, padding: 7, gap: 5, borderWidth: 1, borderColor: p.line }}>
+                  <View key={i} style={{ backgroundColor: p.card, borderRadius: a === 'glass' ? 12 : 8, padding: 7, gap: 5, borderWidth: 1, borderColor: p.line }}>
                     <View style={{ width: '70%', height: 6, borderRadius: 3, backgroundColor: p.text, opacity: 0.85 }} />
                     <View style={{ width: '45%', height: 5, borderRadius: 3, backgroundColor: p.text, opacity: 0.35 }} />
-                    <View style={{ alignSelf: 'flex-end', width: 34, height: 12, borderRadius: 6, backgroundColor: p.button }} />
+                    <View style={{ alignSelf: 'flex-end', width: 30, height: 12, borderRadius: 6, backgroundColor: p.button }} />
                   </View>
                 ))}
               </View>

@@ -60,7 +60,7 @@ export function BrandFooter() {
   return (
     <View style={{ alignItems: 'center', gap: 6, marginTop: 24, opacity: 0.8 }}>
       <LogoMark size={24} />
-      <Text style={{ fontSize: 12, letterSpacing: 2, color: getAppearance() === 'dark' ? BRAND.accent : BRAND.dark, fontWeight: '600' }}>VALADON VENTURES</Text>
+      <Text style={{ fontSize: 12, letterSpacing: 2, color: getAppearance() === 'light' ? BRAND.dark : BRAND.accent, fontWeight: '600' }}>VALADON VENTURES</Text>
     </View>
   );
 }

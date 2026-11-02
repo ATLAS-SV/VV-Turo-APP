@@ -8,6 +8,8 @@ import { useStore } from '../../state/AppStore';
 import { HeaderMark } from '../../ui/Brand';
 import { colors, type IconName } from '../../ui/components';
 import { SwipeTabs } from '../../ui/motion';
+import { isGlass } from '../../ui/bubble';
+import { GlassBar } from '../../ui/GlassBar';
 
 function icon(name: IconName) {
   function TabIcon({ color, size }: { color: unknown; size: number }) {
@@ -36,7 +38,7 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
           marginTop: -24,
           backgroundColor: selected ? colors.primary : colors.primaryDark,
           borderWidth: 4,
-          borderColor: colors.card,
+          borderColor: isGlass() ? 'rgba(255,255,255,0.35)' : colors.card,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000',
@@ -87,7 +89,10 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         headerTitleStyle: { color: colors.text },
         headerLeft: HeaderMark,
-        tabBarStyle: { overflow: 'visible' },
+        tabBarStyle: { overflow: 'visible', ...(isGlass() ? { backgroundColor: 'transparent', borderTopWidth: 0 } : {}) },
+        ...(isGlass()
+          ? { sceneStyle: { backgroundColor: 'transparent' }, tabBarBackground: () => <GlassBar edge="bottom" />, headerBackground: () => <GlassBar edge="top" /> }
+          : {}),
         animation: 'shift', // tabs slide in from the side you're moving toward
       }}
       screenLayout={({ route, children }) => {

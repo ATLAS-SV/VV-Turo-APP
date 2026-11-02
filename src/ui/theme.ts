@@ -63,11 +63,13 @@ export const ACTIVE_THEME: ThemeKey = 'royalGold';
 export const theme: BrandTheme = THEMES[ACTIVE_THEME];
 
 /**
- * Appearance: 'light', or 'dark' with the logo's deep purple as the background.
+ * Appearance: 'light'; 'dark' with the logo's deep purple as the background; or 'glass' (frosted glass
+ * over a purple gradient with drifting bubbles, and bubbly motion).
  * Chosen per phone in More → Appearance. EXPO_PUBLIC_APPEARANCE=dark makes dark the starting choice.
  */
-export type Appearance = 'light' | 'dark';
-export const DEFAULT_APPEARANCE: Appearance = process.env.EXPO_PUBLIC_APPEARANCE === 'dark' ? 'dark' : 'light';
+export type Appearance = 'light' | 'dark' | 'glass';
+const envAppearance = process.env.EXPO_PUBLIC_APPEARANCE;
+export const DEFAULT_APPEARANCE: Appearance = envAppearance === 'dark' || envAppearance === 'glass' ? envAppearance : 'light';
 
 let current: Appearance = DEFAULT_APPEARANCE;
 const listeners = new Set<() => void>();

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LockState } from '../logic/types';
 import { useStore } from '../state/AppStore';
+import { Bouncy, glassFx, isGlass, PopIn, radius } from './bubble';
 import { useExpand } from './expandContext';
 
 import { getAppearance, onAppearanceChange, theme } from './theme';
@@ -51,8 +52,32 @@ const DARK: typeof LIGHT = {
   toastBg: '#3B2A78',
 };
 
+/** Frosted glass over a purple gradient: see-through surfaces, light text, gold actions. */
+const GLASS: typeof LIGHT = {
+  bg: 'transparent', // the drifting-bubbles gradient (GlassBackdrop) shows through
+  card: 'rgba(255,255,255,0.10)',
+  text: '#FBF8FF',
+  muted: '#D6CAF0',
+  border: 'rgba(255,255,255,0.22)',
+  primary: '#F4CF5E',
+  primaryDark: theme.primaryDark,
+  secondary: '#B9A6F2',
+  accent: theme.accent,
+  primaryText: '#24104F',
+  locked: '#74E3A0',
+  lockedBg: 'rgba(116,227,160,0.18)',
+  unlocked: '#FFC06B',
+  unlockedBg: 'rgba(255,192,107,0.18)',
+  danger: '#FF9C9C',
+  dangerBg: 'rgba(255,156,156,0.18)',
+  neutralBg: 'rgba(255,255,255,0.14)',
+  toastBg: 'rgba(36,16,79,0.92)',
+};
+
+const PALETTES = { light: LIGHT, dark: DARK, glass: GLASS };
+
 /** Current palette. Updated in place when the appearance changes (More → Appearance). */
-export const colors: typeof LIGHT = { ...(getAppearance() === 'dark' ? DARK : LIGHT) };
+export const colors: typeof LIGHT = { ...PALETTES[getAppearance()] };
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -75,12 +100,12 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
       {children}
     </View>
   );
-  if (!onPress) return body;
+  if (!onPress) return <PopIn>{body}</PopIn>;
   // Tapping a card grows it into the page it opens.
   return (
-    <Pressable onPress={() => expand(ref.current, onPress)} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-      {body}
-    </Pressable>
+    <PopIn>
+      <Bouncy onPress={() => expand(ref.current, onPress)}>{body}</Bouncy>
+    </PopIn>
   );
 }
 
@@ -109,16 +134,16 @@ export function Button({
   }[variant];
   const off = disabled || busy;
   return (
-    <Pressable
+    <Bouncy
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={off}
       onPress={onPress}
-      style={({ pressed }) => [s.button, { backgroundColor: v.bg, opacity: off ? 0.5 : pressed ? 0.8 : 1 }, style]}
+      style={[s.button, { backgroundColor: v.bg }, off ? { opacity: 0.5 } : null, style]}
     >
       {busy ? <ActivityIndicator color={v.fg} /> : icon ? <Ionicons name={icon} size={18} color={v.fg} /> : null}
       <Text style={[s.buttonText, { color: v.fg }]}>{label}</Text>
-    </Pressable>
+    </Bouncy>
   );
 }
 
@@ -232,8 +257,8 @@ export function fmtMoney(n: number) {
 
 function makeStyles() {
   return StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 14, gap: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, minHeight: 46 },
+  card: { backgroundColor: colors.card, borderRadius: radius(), padding: 14, gap: 8, borderWidth: isGlass() ? 1 : StyleSheet.hairlineWidth, borderColor: colors.border, ...glassFx() },
+  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: isGlass() ? 999 : 10, minHeight: 46 },
   buttonText: { fontSize: 16, fontWeight: '600' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, alignSelf: 'flex-start' },
   chipText: { fontSize: 12, fontWeight: '600' },
@@ -252,6 +277,6 @@ function makeStyles() {
 let s = makeStyles();
 
 onAppearanceChange(() => {
-  Object.assign(colors, getAppearance() === 'dark' ? DARK : LIGHT);
+  Object.assign(colors, PALETTES[getAppearance()]);
   s = makeStyles();
 });

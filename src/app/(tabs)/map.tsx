@@ -8,6 +8,7 @@ import { carName, useNow, useStore } from '../../state/AppStore';
 import CarMap from '../../ui/CarMap';
 import { Button, Card, colors, fmtAgo, fmtTime, KeyValue, LockChip, Muted, Row, SectionTitle, Title } from '../../ui/components';
 import { NoSwipeZone, SlideOnChange } from '../../ui/motion';
+import { Bouncy, glassFx, radius } from '../../ui/bubble';
 
 /**
  * The map is the main focus at the top. Below it: a car picker (pick one to zoom to it and see its details),
@@ -91,22 +92,22 @@ export default function MapScreen() {
           const t = telemetry[c.id];
           const active = selected === c.id;
           return (
-            <Pressable
+            <Bouncy
               key={c.id}
               onPress={() => pick(c.id, true)}
               accessibilityRole="button"
               accessibilityLabel={`Show ${carName(c)} on the map`}
-              style={({ pressed }) => ({
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 10,
                 padding: 12,
-                borderRadius: 14,
+                borderRadius: radius(),
                 backgroundColor: colors.card,
                 borderWidth: active ? 2 : 1,
                 borderColor: active ? colors.primary : colors.border,
-                opacity: pressed ? 0.85 : 1,
-              })}
+                ...glassFx(),
+              }}
             >
               <View style={{ width: 8, height: 34, borderRadius: 3, backgroundColor: c.color ?? colors.muted }} />
               <View style={{ flex: 1 }}>
@@ -114,7 +115,7 @@ export default function MapScreen() {
                 <Muted style={{ fontSize: 13 }}>{where(c)}</Muted>
               </View>
               <LockChip state={t?.lockState} />
-            </Pressable>
+            </Bouncy>
           );
         })}
       </View>

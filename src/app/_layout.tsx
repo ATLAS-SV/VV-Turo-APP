@@ -8,6 +8,9 @@ import { BRAND, Logo } from '../ui/Brand';
 import { colors, Toasts } from '../ui/components';
 import { LogoTransitionProvider } from '../ui/LogoTransition';
 import { ExpandProvider } from '../ui/motion';
+import { isGlass } from '../ui/bubble';
+import GlassBackdrop from '../ui/GlassBackdrop';
+import { GlassBar } from '../ui/GlassBar';
 import { applyAppearance, getAppearance, type Appearance } from '../ui/theme';
 
 /** Pages opened by a box expanding into them fade in under it instead of sliding. */
@@ -15,12 +18,14 @@ const EXPANDED_PAGE = { animation: 'fade' as const, animationDuration: 180 };
 
 /** Headers and the tab bar follow the current palette (light, or the logo's purple in dark). */
 function navTheme(a: Appearance) {
-  const base = a === 'dark' ? DarkTheme : DefaultTheme;
+  const base = a === 'light' ? DefaultTheme : DarkTheme;
   return {
     ...base,
     colors: { ...base.colors, primary: colors.primary, background: colors.bg, card: colors.card, text: colors.text, border: colors.border, notification: colors.danger },
   };
 }
+
+const glassHeader = () => <GlassBar edge="top" />;
 
 function RootStack() {
   const { loaded, currentUser } = useStore();
@@ -36,7 +41,14 @@ function RootStack() {
   const isExec = currentUser?.role === 'executive';
   return (
     <>
-      <Stack screenOptions={{ headerTintColor: colors.primary, headerTitleStyle: { color: colors.text }, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack
+        screenOptions={{
+          headerTintColor: colors.primary,
+          headerTitleStyle: { color: colors.text },
+          contentStyle: { backgroundColor: colors.bg },
+          ...(isGlass() ? { headerBackground: glassHeader } : {}),
+        }}
+      >
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="car/[id]" options={{ title: 'Car', ...EXPANDED_PAGE }} />
@@ -55,7 +67,7 @@ function RootStack() {
         </Stack.Protected>
       </Stack>
       {signedIn ? <Toasts /> : null}
-      <StatusBar style={getAppearance() === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={getAppearance() === 'light' ? 'dark' : 'light'} />
     </>
   );
 }
@@ -78,7 +90,10 @@ function AppearanceGate({ children }: { children: ReactNode }) {
   }, [appearance]);
   return (
     <ThemeProvider key={appearance} value={navTheme(appearance)}>
-      {children}
+      <View style={{ flex: 1 }}>
+        {appearance === 'glass' ? <GlassBackdrop /> : null}
+        {children}
+      </View>
     </ThemeProvider>
   );
 }

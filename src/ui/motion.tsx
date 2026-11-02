@@ -2,23 +2,16 @@
 // (2) swipe left/right on a tab page to move to the neighbouring tab.
 // Built on React Native's own Animated + PanResponder, so it works the same on iPhone and the web app.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { colors } from './components';
+import { isGlass, prefersReducedMotion as reduceMotionNow } from './bubble';
 import { ExpandCtx, type Expand } from './expandContext';
 
 // ---------- (1) expand a box into its page ----------
 
 type Rect = { x: number; y: number; w: number; h: number };
 
-// The phone's Reduce Motion setting, known ahead of time so animations can start instantly.
-let reduceMotion = false;
-AccessibilityInfo.isReduceMotionEnabled()
-  .then((v) => (reduceMotion = v))
-  .catch(() => {});
-AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => (reduceMotion = v));
-
-/** True when the phone's Reduce Motion setting is on. */
-export const prefersReducedMotion = () => reduceMotion;
+export { prefersReducedMotion } from './bubble';
 export { useExpand } from './expandContext';
 
 const EXPAND_MS = 280;
@@ -33,7 +26,7 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
 
   const expand = useCallback<Expand>(
     (from, go, opts = {}) => {
-      if (!from || reduceMotion || busy.current) return go();
+      if (!from || reduceMotionNow() || busy.current) return go();
       busy.current = true;
       from.measureInWindow((x, y, w, h) => {
         if (!w || !h) {
@@ -42,8 +35,13 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
         }
         progress.setValue(0);
         fade.setValue(1);
-        setAnim({ rect: { x, y, w, h }, radius: opts.radius ?? 14, color: opts.color ?? colors.card });
-        Animated.timing(progress, { toValue: 1, duration: EXPAND_MS, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: false }).start(() => {
+        const glass = isGlass();
+        setAnim({ rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? 'rgba(255,255,255,0.18)' : (opts.color ?? colors.card) });
+        // Glass: the box swells like a bubble (slight overshoot, then settles). Others: smooth ease.
+        const grow = glass
+          ? Animated.spring(progress, { toValue: 1, speed: 13, bounciness: 7, useNativeDriver: false, restDisplacementThreshold: 0.01 })
+          : Animated.timing(progress, { toValue: 1, duration: EXPAND_MS, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: false });
+        grow.start(() => {
           go(); // the page opens underneath the fully expanded surface…
           setTimeout(() => {
             // …then the surface fades away to reveal it.
@@ -73,8 +71,8 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
             top: progress.interpolate({ inputRange: [0, 1], outputRange: [r.y, 0] }),
             width: progress.interpolate({ inputRange: [0, 1], outputRange: [r.w, width] }),
             height: progress.interpolate({ inputRange: [0, 1], outputRange: [r.h, height] }),
-            borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.radius, 0] }),
-            backgroundColor: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.color, colors.bg] }),
+            borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.radius, 0], extrapolate: 'clamp' }),
+            backgroundColor: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.color, isGlass() ? 'rgba(36,16,90,0.7)' : colors.bg], extrapolate: 'clamp' }),
             opacity: fade,
             shadowColor: '#000',
             shadowOpacity: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.18, 0] }),
@@ -238,11 +236,13 @@ export function SlideOnChange({ value, children, distance = 36, style }: { value
     if (prev.current === value) return;
     const dir = value > prev.current ? 1 : -1;
     prev.current = value;
-    if (reduceMotion) return;
+    if (reduceMotionNow()) return;
     tx.setValue(dir * distance);
     op.setValue(0.2);
     Animated.parallel([
-      Animated.timing(tx, { toValue: 0, duration: 260, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: Platform.OS !== 'web' }),
+      isGlass()
+        ? Animated.spring(tx, { toValue: 0, speed: 14, bounciness: 12, useNativeDriver: Platform.OS !== 'web' })
+        : Animated.timing(tx, { toValue: 0, duration: 260, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(op, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [value, distance, tx, op]);

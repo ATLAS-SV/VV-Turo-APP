@@ -18,9 +18,9 @@ const DARK_CHART: Record<EarningType, string> = {
 };
 
 /** Current chart colors; updated in place when the appearance changes. */
-export const EARNING_COLORS: Record<EarningType, string> = { ...(getAppearance() === 'dark' ? DARK_CHART : LIGHT_CHART) };
+export const EARNING_COLORS: Record<EarningType, string> = { ...(getAppearance() === 'light' ? LIGHT_CHART : DARK_CHART) };
 
 /** Trip-earnings purple at 38% on white: "still to come". Always labeled, never color alone. */
-export const upcomingColor = () => (getAppearance() === 'dark' ? '#5A479C' : '#C1B5E1');
+export const upcomingColor = () => (getAppearance() === 'light' ? '#C1B5E1' : '#5A479C');
 
-onAppearanceChange(() => Object.assign(EARNING_COLORS, getAppearance() === 'dark' ? DARK_CHART : LIGHT_CHART));
+onAppearanceChange(() => Object.assign(EARNING_COLORS, getAppearance() === 'light' ? LIGHT_CHART : DARK_CHART));

@@ -11,6 +11,7 @@ import type { TaskWithState } from '../../logic/tasks';
 import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
 import { colors, fmtClock, type IconName, Muted } from '../../ui/components';
 import { DonutChart } from '../../ui/DonutChart';
+import { Bouncy, glassFx, PopIn, radius } from '../../ui/bubble';
 import { useExpand } from '../../ui/expandContext';
 import { EARNING_COLORS, upcomingColor } from '../../ui/earningColors';
 
@@ -90,7 +91,7 @@ export default function OverviewScreen() {
         {/* To do: needs attention + tasks in one box */}
         <Box
           icon="checkbox"
-          title="To do"
+          title="To do" delay={0}
           badge={alerts.length + openTasks.length ? `${alerts.length + openTasks.length}` : undefined}
           badgeTone={overdue.length || alerts.length ? 'warn' : 'neutral'}
           onPress={() => router.push('/tasks')}
@@ -119,7 +120,7 @@ export default function OverviewScreen() {
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {/* Fleet */}
-          <Box icon="car-sport" title="Fleet" onPress={() => router.push('/cars')} half>
+          <Box icon="car-sport" title="Fleet" delay={70} onPress={() => router.push('/cars')} half>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <Stat n={cars.length - unlocked.length} label="locked" />
               <Stat n={unlocked.length} label="unlocked" tone={unlocked.length ? 'warn' : undefined} />
@@ -143,7 +144,7 @@ export default function OverviewScreen() {
 
           {/* Money (Executive) or Map (Employee) */}
           {money ? (
-            <Box icon="cash" title="Money" onPress={() => router.push('/money')} half>
+            <Box icon="cash" title="Money" delay={140} onPress={() => router.push('/money')} half>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <DonutChart
                   size={58}
@@ -174,7 +175,7 @@ export default function OverviewScreen() {
         </View>
 
         {/* Bookings brief */}
-        <Box icon="calendar" title={isExec ? 'Bookings' : 'Trips'} onPress={() => router.push('/cars?view=bookings')}>
+        <Box icon="calendar" title={isExec ? 'Bookings' : 'Trips'} delay={210} onPress={() => router.push('/cars?view=bookings')}>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Stat n={todayOut.length} label="out today" />
             <Stat n={todayBack.length} label="back today" />
@@ -195,7 +196,7 @@ export default function OverviewScreen() {
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {money ? <MapBox inLot={inLot.length} out={cars.length - inLot.length} /> : null}
           {/* Hours */}
-          <Box icon="time" title="Hours" onPress={() => router.push('/hours')} half={!!money} headerOnly>
+          <Box icon="time" title="Hours" delay={350} onPress={() => router.push('/hours')} half={!!money} headerOnly>
             <Text style={{ fontSize: 13, color: myShift ? colors.locked : colors.muted, fontWeight: '600' }} numberOfLines={1}>
               {myShift ? `On · ${formatMinutes(shiftMinutes(myShift, now))}` : 'Off the clock'}
             </Text>
@@ -232,7 +233,7 @@ function ScrollBody({ children }: { children: ReactNode }) {
 
 function MapBox({ inLot, out }: { inLot: number; out: number }) {
   return (
-    <Box icon="map" title="Map" onPress={() => router.push('/map')} half>
+    <Box icon="map" title="Map" delay={280} onPress={() => router.push('/map')} half>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <Stat n={inLot} label="in lot" />
         <Stat n={out} label="out" />
@@ -297,6 +298,7 @@ function Box({
   badge,
   badgeTone = 'neutral',
   boxRef,
+  delay = 0,
 }: {
   icon: IconName;
   title: string;
@@ -308,6 +310,8 @@ function Box({
   badgeTone?: 'warn' | 'neutral';
   /** Lets the parent expand this box from elsewhere (e.g. "See all"). */
   boxRef?: RefObject<HostInstance | null>;
+  /** Glass: boxes pop in one after another. */
+  delay?: number;
 }) {
   const ownRef = useRef<HostInstance>(null);
   const ref = boxRef ?? ownRef;
@@ -328,31 +332,37 @@ function Box({
   );
   const box = {
     backgroundColor: colors.card,
-    borderRadius: 14,
+    borderRadius: radius(),
     padding: 12,
     gap: 7,
     borderWidth: 1,
     borderColor: colors.border,
     ...(half ? { flex: 1 } : {}),
+    ...glassFx(),
   };
+  const fill = half ? { flex: 1 } : undefined;
   // The box grows to fill the screen and becomes the page it opens.
   const open = () => expand(ref.current, onPress);
   if (headerOnly) {
     return (
-      <View ref={ref} style={box}>
-        <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} hitSlop={6}>
-          {header}
-        </Pressable>
-        {children}
-      </View>
+      <PopIn delay={delay} style={fill}>
+        <View ref={ref} style={box}>
+          <Bouncy onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} hitSlop={6}>
+            {header}
+          </Bouncy>
+          {children}
+        </View>
+      </PopIn>
     );
   }
   return (
-    <View ref={ref} style={box}>
-      <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} style={({ pressed }) => ({ gap: 7, opacity: pressed ? 0.85 : 1 })}>
-        {header}
-        {children}
-      </Pressable>
-    </View>
+    <PopIn delay={delay} style={fill}>
+      <Bouncy onPress={open} accessibilityRole="button" accessibilityLabel={`Open ${title}`} style={fill}>
+        <View ref={ref} style={box}>
+          {header}
+          {children}
+        </View>
+      </Bouncy>
+    </PopIn>
   );
 }
