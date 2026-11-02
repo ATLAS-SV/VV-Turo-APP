@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { PIN_LENGTH } from '../logic/pin';
 import { pinScreenLook } from './Brand';
-import { Bouncy, glassFx, PopIn, prefersReducedMotion } from './bubble';
+import { glassFx, PopIn, prefersReducedMotion } from './bubble';
 import { colors } from './components';
 
 const nativeDriver = Platform.OS !== 'web';
@@ -27,6 +27,7 @@ function padColors(variant: 'light' | 'brand') {
       okReadyFg: l.okReadyFg,
       dotRing: l.dotRing,
       dotFill: l.dotFill,
+      ripple: l.dotFill,
       error: l.error,
     };
   }
@@ -45,6 +46,7 @@ function padColors(variant: 'light' | 'brand') {
     okReadyFg: colors.primaryText,
     dotRing: colors.muted,
     dotFill: colors.text,
+    ripple: colors.primary,
     error: colors.danger,
   };
 }
@@ -130,6 +132,7 @@ export function PinPad({
               border={isOk && okReady ? c.okReadyBg : c.keyBorder}
               borderWidth={c.keyBorderWidth}
               pressedBg={isOk && okReady ? c.okReadyBg : c.keyPressed}
+              ripple={c.ripple}
               glass={c.glass}
             >
               {k === 'del' ? (
@@ -147,7 +150,10 @@ export function PinPad({
   );
 }
 
-/** One round key: pops in, squishes when pressed, springs back with a bounce. */
+/**
+ * One round key, bubble-style: pops in, squishes down hard when pressed, springs back with a wobble,
+ * and a ring ripples out from it like a bubble bursting.
+ */
 function PinKey({
   size,
   delay,
@@ -158,6 +164,7 @@ function PinKey({
   border,
   borderWidth,
   pressedBg,
+  ripple,
   glass,
   children,
 }: {
@@ -170,27 +177,58 @@ function PinKey({
   border: string;
   borderWidth: number;
   pressedBg: string;
+  ripple: string;
   glass: boolean;
   children: ReactNode;
 }) {
   const [pressed, setPressed] = useState(false);
+  const [scale] = useState(() => new Animated.Value(1));
+  const [ring] = useState(() => new Animated.Value(0));
+  const motion = !prefersReducedMotion();
+
+  const down = () => {
+    setPressed(true);
+    if (!motion) return;
+    Animated.spring(scale, { toValue: 0.82, speed: 50, bounciness: 0, useNativeDriver: nativeDriver }).start();
+    ring.setValue(0);
+    Animated.timing(ring, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: nativeDriver }).start();
+  };
+  const up = () => {
+    setPressed(false);
+    if (motion) Animated.spring(scale, { toValue: 1, speed: 14, bounciness: 20, useNativeDriver: nativeDriver }).start();
+  };
+
   return (
     <PopIn delay={delay}>
-      <Bouncy
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        disabled={disabled}
-        onPress={onPress}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        style={[
-          { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? pressedBg : bg, borderWidth, borderColor: border },
-          glass ? glassFx() : null,
-          disabled ? { opacity: 0.4 } : null,
-        ]}
-      >
-        {children}
-      </Bouncy>
+      <View style={{ width: size, height: size }}>
+        {motion ? (
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              borderWidth: 2,
+              borderColor: ripple,
+              opacity: ring.interpolate({ inputRange: [0, 0.05, 1], outputRange: [0, 0.7, 0] }),
+              transform: [{ scale: ring.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.55] }) }],
+            }}
+          />
+        ) : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} onPressIn={down} onPressOut={up}>
+          <Animated.View
+            style={[
+              { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? pressedBg : bg, borderWidth, borderColor: border },
+              glass ? glassFx() : null,
+              disabled ? { opacity: 0.4 } : null,
+              { transform: [{ scale }] },
+            ]}
+          >
+            {children}
+          </Animated.View>
+        </Pressable>
+      </View>
     </PopIn>
   );
 }
@@ -200,7 +238,7 @@ function Dot({ filled, ring, fill }: { filled: boolean; ring: string; fill: stri
   const [v] = useState(() => new Animated.Value(filled ? 1 : 0));
   useEffect(() => {
     if (prefersReducedMotion()) v.setValue(filled ? 1 : 0);
-    else if (filled) Animated.spring(v, { toValue: 1, speed: 22, bounciness: 18, useNativeDriver: nativeDriver }).start();
+    else if (filled) Animated.spring(v, { toValue: 1, speed: 18, bounciness: 22, useNativeDriver: nativeDriver }).start();
     else Animated.timing(v, { toValue: 0, duration: 120, useNativeDriver: nativeDriver }).start();
   }, [filled, v]);
   return (

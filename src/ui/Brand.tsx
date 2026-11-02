@@ -65,7 +65,7 @@ export function BrandFooter() {
   );
 }
 
-/** Colors for the PIN screen. Light and Dark keep the logo look (gold on deep purple); the Glass looks go frosted. */
+/** Colors for the PIN screen, one per look: Dark keeps the logo look (gold on deep purple), Light is purple on lavender, the Glass looks go frosted. */
 export interface PinScreenLook {
   glass: boolean;
   lightText: boolean;
@@ -108,6 +108,29 @@ const LOGO_LOOK: PinScreenLook = {
   dotRing: 'rgba(212,175,55,0.6)',
   dotFill: theme.accent,
   error: '#FFB8B8',
+};
+
+/** Light: the logo screen in the app's light colors (purple on soft lavender, white keys). */
+const LIGHT_LOOK: PinScreenLook = {
+  glass: false,
+  lightText: false,
+  bg: theme.background,
+  frame: theme.primary,
+  panel: '#FFFFFF',
+  mono: theme.primary,
+  sub: '#4A4F5C',
+  demoBg: 'rgba(59,31,122,0.07)',
+  demoText: '#2D2160',
+  keyBg: '#F6F4FA',
+  keyBorder: '#DDD5EE',
+  keyText: '#14171F',
+  keyPressed: '#E6DEF7',
+  icon: theme.primary,
+  okReadyBg: theme.primary,
+  okReadyFg: '#FFFFFF',
+  dotRing: 'rgba(59,31,122,0.4)',
+  dotFill: theme.primary,
+  error: '#B91C1C',
 };
 
 const GLASS_DARK_LOOK: PinScreenLook = {
@@ -156,7 +179,7 @@ const GLASS_LIGHT_LOOK: PinScreenLook = {
 
 export function pinScreenLook(): PinScreenLook {
   const a = getAppearance();
-  return a === 'glass' ? GLASS_DARK_LOOK : a === 'glassLight' ? GLASS_LIGHT_LOOK : LOGO_LOOK;
+  return a === 'glass' ? GLASS_DARK_LOOK : a === 'glassLight' ? GLASS_LIGHT_LOOK : a === 'light' ? LIGHT_LOOK : LOGO_LOOK;
 }
 
 /** Serif matching the logo's "VV" lettering. */
