@@ -41,8 +41,8 @@ export const DEFAULT_SETTINGS: Settings = {
 export const SEED_CARS: Car[] = [
   { id: 'gv70', year: 2026, make: 'Genesis', model: 'GV70', color: '#2E3A4F' },
   { id: 'tx', year: 2026, make: 'Lexus', model: 'TX', color: '#8C8C8C' },
-  { id: 'bmw3', year: null, make: 'BMW', model: '3 Series', color: '#1F4E8C' },
-  { id: 'rogue', year: null, make: 'Nissan', model: 'Rogue', color: '#A23B2A' },
+  { id: 'bmw3', year: 2026, make: 'BMW', model: '3 Series', color: '#1F4E8C' },
+  { id: 'rogue', year: 2026, make: 'Nissan', model: 'Rogue', color: '#A23B2A' },
 ];
 
 export function seedTelemetry(now: number): CarTelemetry[] {

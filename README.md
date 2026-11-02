@@ -87,7 +87,7 @@ Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend
 
 ## Open questions (from the planning doc)
 
-- BMW 3 Series and Nissan Rogue years (editable under More → Cars); any other cars?
+- Any other cars? (All four are 2026 models, confirmed from Turo emails.)
 - Smartcar support for each car
 - Home lot exact address
 - Should the helper unlock all cars or only assigned ones? (Built as a setting; defaults to all.)
