@@ -31,6 +31,10 @@ import type {
 import { mockFleet, tracker, vehicleControl } from '../services/mockFleet';
 
 const STORAGE_KEY = 'turo-app/v1';
+
+/** Demo build (EXPO_PUBLIC_DEMO=1): starts with two people and shows their PINs on the sign-in screen. */
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO === '1';
+export const DEMO_PINS = { executive: '135790', employee: '246800' };
 const AUTOMATION_INTERVAL_MS = 15_000;
 
 interface Persisted {
@@ -139,6 +143,14 @@ function useAppStoreValue() {
         // Corrupt or unavailable storage: start fresh.
       }
       const merged = { ...initialPersisted(), ...saved, settings: { ...DEFAULT_SETTINGS, ...saved.settings } };
+      // Demo build: ready-made people so anyone can try both views without setting up PINs.
+      if (DEMO_MODE && !merged.users.length) {
+        const now = new Date().toISOString();
+        merged.users = [
+          { id: 'demo-exec', name: 'Sebastian', role: 'executive', assignedCarIds: [], createdAt: now, ...(await makePinRecord(DEMO_PINS.executive)) },
+          { id: 'demo-emp', name: 'Helper', role: 'employee', assignedCarIds: [], createdAt: now, ...(await makePinRecord(DEMO_PINS.employee)) },
+        ];
+      }
       mockFleet.load(merged.mockTelemetry, merged.mockTrips);
       update((s) => ({ ...s, ...merged, loaded: true }));
     })();
