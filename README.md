@@ -105,7 +105,7 @@ npx expo lint
 | Late-return alert (optional) | `src/logic/autoLock.ts` |
 | Send the check-in link in Turo: copies the ready-made message (editable in Settings) and opens Turo; "I sent it" logs it | `src/app/booking/[id].tsx`, `src/logic/checkInMessage.ts` |
 | Cars & Bookings in one tab with a switch at the top; Bookings has a month calendar (a bar per booked car, tap a day to filter) above the list (employees see trip times only, no money or guest details) | `src/app/(tabs)/cars.tsx`, `src/ui/CarsList.tsx`, `src/ui/BookingsList.tsx`, `src/ui/BookingCalendar.tsx` |
-| Money tab (Executive only): month switcher; big numbers with a donut chart alongside; past months show total earned, future months show upcoming; change vs last month; breakdown like Turo's earnings page: trip earnings, upcoming earnings, reimbursements (incl. claim payouts), incentives, missed earnings (not counted in totals); by car; Turo payouts | `src/app/(tabs)/money.tsx`, `src/logic/money.ts`, `src/ui/DonutChart.tsx` |
+| Money tab (Executive only): month switcher; big numbers with a donut chart alongside; past months show total earned, future months show upcoming; change vs last month; each money category in its own box: trip earnings, upcoming, reimbursements (incl. claim payouts), incentives, missed earnings (not counted in totals); by car; Turo payouts | `src/app/(tabs)/money.tsx`, `src/logic/money.ts`, `src/ui/DonutChart.tsx` |
 | Clock in/out; Executive sees everyone's hours | `src/app/(tabs)/hours.tsx` |
 | Activity log (person, guest link, auto-lock, system) | `src/app/activity.tsx` |
 | Executive settings: every number is adjustable | `src/app/settings.tsx` |

@@ -92,15 +92,16 @@ export default function MoneyScreen() {
           <DonutChart slices={slices} size={146} centerLabel="Total" centerValue={money0(total)} />
         </Card>
 
-        {/* Breakdown = the donut's legend, with amounts and shares */}
-        <Card>
-          <BreakdownRow color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
-          <BreakdownRow color={upcomingColor()} label="Upcoming earnings" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
-          <BreakdownRow color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
-          <BreakdownRow color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
-          <View style={{ height: 1, backgroundColor: colors.border }} />
-          <BreakdownRow color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not in the total." value={sum.missed} muted />
-        </Card>
+        {/* Each money category in its own box (colors match the donut) */}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <CategoryBox color={EARNING_COLORS.trip} label="Trip earnings" sub="Completed trips" value={sum.byType.trip.earned} share={pct(sum.byType.trip.earned)} />
+          <CategoryBox color={upcomingColor()} label="Upcoming" sub="Comes in after the trips finish" value={sum.upcoming} share={pct(sum.upcoming)} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <CategoryBox color={EARNING_COLORS.reimbursement} label="Reimbursements" sub="Tolls, fuel, claim payouts" value={reimb} share={pct(reimb)} />
+          <CategoryBox color={EARNING_COLORS.incentive} label="Incentives" sub="Turo bonuses" value={incent} share={pct(incent)} />
+        </View>
+        <CategoryBox color={EARNING_COLORS.missed} label="Missed earnings" sub="Canceled trips, unbilled extras. Not counted in the total." value={sum.missed} muted wide />
 
         {Object.keys(sum.byCar).length ? (
           <>
@@ -143,21 +144,37 @@ export default function MoneyScreen() {
   );
 }
 
-function BreakdownRow({ color, label, sub, value, share, muted }: { color: string; label: string; sub: string; value: number; share?: string; muted?: boolean }) {
+/** One money category: color tab, name, amount, share of the month's total. */
+function CategoryBox({ color, label, sub, value, share, muted, wide }: { color: string; label: string; sub: string; value: number; share?: string; muted?: boolean; wide?: boolean }) {
   return (
-    <Row style={{ justifyContent: 'space-between', paddingVertical: 4, alignItems: 'flex-start' }}>
-      <Row style={{ flex: 1, alignItems: 'flex-start' }}>
-        <View style={{ width: 14, height: 14, borderRadius: 4, marginTop: 4, backgroundColor: color }} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 16, fontWeight: '600' }}>{label}</Text>
-          <Muted style={{ fontSize: 12 }}>{sub}</Muted>
-        </View>
-      </Row>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 18, fontWeight: '700' }}>{fmtMoney(value)}</Text>
-        {share ? <Muted style={{ fontSize: 12 }}>{share} of total</Muted> : null}
+    <View
+      accessibilityLabel={`${label}: ${fmtMoney(value)}${share ? `, ${share} of total` : ''}`}
+      style={{
+        flex: wide ? undefined : 1,
+        backgroundColor: colors.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 12,
+        paddingTop: 14,
+        gap: 4,
+        overflow: 'hidden',
+        opacity: muted ? 0.85 : 1,
+      }}
+    >
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, backgroundColor: color }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color }} />
+        <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 14, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+          {label}
+        </Text>
       </View>
-    </Row>
+      <Text style={{ color: muted ? colors.muted : colors.text, fontSize: 22, fontWeight: '800' }} adjustsFontSizeToFit numberOfLines={1}>
+        {fmtMoney(value)}
+      </Text>
+      {share ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>{share} of total</Text> : null}
+      <Muted style={{ fontSize: 12 }}>{sub}</Muted>
+    </View>
   );
 }
 
