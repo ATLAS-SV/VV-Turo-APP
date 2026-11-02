@@ -10,7 +10,7 @@ import type { Booking, Car, CarTelemetry } from '../logic/types';
 import { carName, useNow, useStore } from '../state/AppStore';
 import { Bouncy, glassFx, isGlass, PopIn } from './bubble';
 import { colors, fmtClock, Muted } from './components';
-import { useExpand } from './expandContext';
+import { useCarriageMorph } from './CarriageMorph';
 import { FilterChips, matchesQuery, NoMatches, SearchBar, type FilterOption } from './filters';
 import LogoGradient from './LogoGradient';
 import { LOGO } from './logoColors';
@@ -254,7 +254,7 @@ function Carriage({
 }) {
   const { telemetry, settings, busyCars, currentUser } = useStore();
   const ref = useRef<HostInstance>(null);
-  const expand = useExpand();
+  const { fly } = useCarriageMorph();
   const t = telemetry[car.id];
   const busy = busyCars[car.id];
   const isUnlocked = t?.lockState === 'unlocked';
@@ -283,7 +283,8 @@ function Carriage({
     }
   }
 
-  const open = () => expand(ref.current, () => router.push(`/car/${car.id}`), { radius: 18 });
+  // The carriage rides up and grows into the big carriage at the top of the car page.
+  const open = () => fly(ref.current, { title, subtitle }, () => router.push(`/car/${car.id}`));
 
   return (
     <View style={{ paddingBottom: 12 }}>
@@ -371,7 +372,7 @@ function LockButton({
 }
 
 /** The short stretch of track each carriage sits on: a rail with crossties under it. */
-function Track() {
+export function Track() {
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: -6, right: -6, bottom: 0, height: 8 }}>
       <View style={{ height: 2, borderRadius: 1, backgroundColor: colors.secondary }} />

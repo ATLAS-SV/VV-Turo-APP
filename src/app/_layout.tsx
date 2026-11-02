@@ -8,6 +8,7 @@ import { Logo } from '../ui/Brand';
 import { colors, Toasts } from '../ui/components';
 import { LogoTransitionProvider } from '../ui/LogoTransition';
 import { ExpandProvider } from '../ui/motion';
+import { CarriageMorphProvider } from '../ui/CarriageMorph';
 import { isGlass } from '../ui/bubble';
 import GlassBackdrop from '../ui/GlassBackdrop';
 import LogoGradient from '../ui/LogoGradient';
@@ -107,9 +108,11 @@ export default function RootLayout() {
       <AppStoreProvider>
         <AppearanceGate>
           <ExpandProvider>
-            <LogoTransitionProvider>
-              <RootStack />
-            </LogoTransitionProvider>
+            <CarriageMorphProvider>
+              <LogoTransitionProvider>
+                <RootStack />
+              </LogoTransitionProvider>
+            </CarriageMorphProvider>
           </ExpandProvider>
         </AppearanceGate>
       </AppStoreProvider>
