@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
-import { bookingStatus } from '../../logic/bookings';
-import { can } from '../../logic/permissions';
-import type { Booking, BookingStatus } from '../../logic/types';
-import { carName, useNow, useStore } from '../../state/AppStore';
-import { CHECK_IN_LABEL } from '../../ui/labels';
-import { Card, Chip, fmtMoney, fmtTime, Muted, Row, Screen, SectionTitle, Title } from '../../ui/components';
+import { bookingStatus } from '../logic/bookings';
+import { can } from '../logic/permissions';
+import type { Booking, BookingStatus } from '../logic/types';
+import { carName, useNow, useStore } from '../state/AppStore';
+import { CHECK_IN_LABEL } from './labels';
+import { Card, Chip, fmtMoney, fmtTime, Muted, Row, Screen, SectionTitle, Title } from './components';
 
 const GROUPS: { status: BookingStatus; title: string }[] = [
   { status: 'active', title: 'On trip now' },
@@ -14,7 +14,7 @@ const GROUPS: { status: BookingStatus; title: string }[] = [
 ];
 
 /** Schedule built from Turo booking emails. Employees see trip times only, no money or guest details. */
-export default function BookingsScreen() {
+export function BookingsList() {
   const { bookings, cars, currentUser } = useStore();
   const now = useNow(30_000);
   const showMoney = can(currentUser, 'viewEarnings');

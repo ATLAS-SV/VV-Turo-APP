@@ -52,12 +52,12 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
   );
 }
 
-const HOME_HREF = { overview: '/', cars: '/cars', map: '/map', bookings: '/bookings', money: '/money', hours: '/hours' } as const;
+const HOME_HREF = { overview: '/', cars: '/cars', map: '/map', bookings: '/cars?view=bookings', money: '/money', hours: '/hours' } as const;
 
 /**
  * Five buttons per role with Overview in the middle.
- * Executive: Cars · Bookings · Overview · Money · More (Map & Hours open from Overview and More).
- * Employee:  Cars · Map · Overview · Hours · More.
+ * Executive: Cars & Bookings · Map · Overview · Money · More (Hours and Activity log are in More).
+ * Employee:  Cars & Trips · Map · Overview · Hours · More.
  */
 export default function TabsLayout() {
   const { currentUser } = useStore();
@@ -84,9 +84,8 @@ export default function TabsLayout() {
         tabBarStyle: { overflow: 'visible' },
       }}
     >
-      <Tabs.Screen name="cars" options={{ title: 'Cars', tabBarIcon: icon('car-sport') }} />
-      <Tabs.Screen name="map" options={{ title: 'Map', tabBarIcon: icon('map'), ...shown(!isExec) }} />
-      <Tabs.Screen name="bookings" options={{ title: isExec ? 'Bookings' : 'Trips', tabBarIcon: icon('calendar'), ...shown(isExec) }} />
+      <Tabs.Screen name="cars" options={{ title: isExec ? 'Cars & Bookings' : 'Cars & Trips', tabBarLabel: 'Cars', tabBarIcon: icon('car-sport') }} />
+      <Tabs.Screen name="map" options={{ title: 'Map', tabBarIcon: icon('map') }} />
       <Tabs.Screen name="index" options={{ title: 'Overview', tabBarButton: OverviewTabButton }} />
       <Tabs.Screen name="money" options={{ title: 'Money', tabBarIcon: icon('cash'), ...shown(isExec) }} />
       <Tabs.Screen name="hours" options={{ title: 'Hours', tabBarIcon: icon('time'), ...shown(!isExec) }} />

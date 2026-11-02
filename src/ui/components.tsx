@@ -140,7 +140,7 @@ export function ListItem({ icon, label, sub, onPress, right }: { icon: IconName;
     <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [s.listItem, { opacity: pressed ? 0.7 : 1 }]}>
       <Ionicons name={icon} size={20} color={colors.primary} />
       <View style={{ flex: 1 }}>
-        <Text style={s.kvValue}>{label}</Text>
+        <Text style={[s.kvValue, { textAlign: 'left' }]}>{label}</Text>
         {sub ? <Text style={s.muted}>{sub}</Text> : null}
       </View>
       {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null)}

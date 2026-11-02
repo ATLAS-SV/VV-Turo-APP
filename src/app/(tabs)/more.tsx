@@ -17,28 +17,28 @@ export default function MoreScreen() {
       </Card>
       <SectionTitle>Go to</SectionTitle>
       <Card style={{ paddingVertical: 2 }}>
+        {can(currentUser, 'viewActivityLog') ? (
+          <>
+            <ListItem icon="list" label="Activity log" sub="Who locked/unlocked which car and when" onPress={() => router.push('/activity')} />
+            <Divider />
+          </>
+        ) : null}
         <ListItem icon="grid" label="Overview" onPress={() => router.navigate('/')} />
         <Divider />
         <ListItem icon="checkbox" label="Tasks" sub="Check-in photos, licenses, claims" onPress={() => router.push('/tasks')} />
         <Divider />
         {isExec ? (
           <>
-            <ListItem icon="map" label="Map" sub="Where every car is" onPress={() => router.navigate('/map')} />
-            <Divider />
             <ListItem icon="time" label="Hours" sub="Clock in/out, everyone's hours" onPress={() => router.navigate('/hours')} />
           </>
         ) : (
-          <ListItem icon="calendar" label="Trips" sub="Upcoming trip times" onPress={() => router.navigate('/bookings')} />
+          <ListItem icon="calendar" label="Trips" sub="Upcoming trip times" onPress={() => router.navigate('/cars?view=bookings')} />
         )}
       </Card>
       {isExec ? (
         <>
           <SectionTitle>Executive</SectionTitle>
           <Card style={{ paddingVertical: 2 }}>
-            {can(currentUser, 'viewActivityLog') ? (
-              <ListItem icon="list" label="Activity log" sub="Who locked/unlocked which car and when" onPress={() => router.push('/activity')} />
-            ) : null}
-            <Divider />
             <ListItem icon="options" label="Settings" sub="Auto-lock, guest link, home lot" onPress={() => router.push('/settings')} />
             <Divider />
             <ListItem icon="people" label="Team & PINs" sub="Add or remove people, change PINs" onPress={() => router.push('/team')} />

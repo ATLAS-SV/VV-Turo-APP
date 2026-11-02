@@ -1,28 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn, tomorrow } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
 import { formatMinutes, openShift, shiftMinutes } from '../../logic/hours';
-import { earningItems, monthKey, monthLabel, summarizeMonth } from '../../logic/money';
 import { can } from '../../logic/permissions';
 import type { Booking } from '../../logic/types';
-import { ACTION_LABELS, actorLabel, carName, useNow, useStore, useTasks } from '../../state/AppStore';
+import { carName, useNow, useStore, useTasks } from '../../state/AppStore';
 import { TaskRow } from '../../ui/TaskRow';
-import { Button, Chip, colors, fmtAgo, fmtClock, fmtMoney, fmtTime, type IconName, LockChip, Muted, Row, Screen } from '../../ui/components';
+import { Button, Chip, colors, fmtClock, type IconName, LockChip, Muted, Row, Screen } from '../../ui/components';
 
 /** Master page: a little of everything. Tap any card to open that part of the app. */
 export default function OverviewScreen() {
   const store = useStore();
-  const { currentUser, cars, telemetry, settings, bookings, activity, shifts, earningExtras, payouts, toggleClock } = store;
+  const { currentUser, cars, telemetry, settings, bookings, activity, shifts, toggleClock } = store;
   const now = useNow(30_000);
-  const items = useMemo(() => earningItems(bookings, earningExtras), [bookings, earningExtras]);
   const tasks = useTasks();
   if (!currentUser) return null;
 
   const isExec = currentUser.role === 'executive';
-  const showMoney = can(currentUser, 'viewEarnings');
   const showGuest = can(currentUser, 'viewGuestDetails');
 
   // Fleet
@@ -57,10 +54,6 @@ export default function OverviewScreen() {
     for (const a of lateAlerts.slice(0, 2)) attention.push({ icon: 'warning', text: a.detail ?? 'Late return', to: '/activity' });
   }
 
-  // Money
-  const month = monthKey(now);
-  const money = showMoney ? summarizeMonth(items, payouts, month, now) : null;
-  const lastPayout = showMoney ? [...payouts].sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0] : undefined;
 
   // Hours
   const open = openShift(shifts, currentUser.id);
@@ -134,7 +127,7 @@ export default function OverviewScreen() {
         </View>
       </Row>
 
-      <Tile icon="today" title="Going out today" onPress={() => router.push('/bookings')} action={isExec ? 'Bookings' : 'Trips'} headerLinkOnly>
+      <Tile icon="today" title="Going out today" onPress={() => router.push('/cars?view=bookings')} action={isExec ? 'Bookings' : 'Trips'} headerLinkOnly>
         {todayOut.length ? (
           todayOut.map((b) => <PickupRow key={b.id} b={b} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} now={now} />)
         ) : (
@@ -147,7 +140,7 @@ export default function OverviewScreen() {
         ) : null}
       </Tile>
 
-      <Tile icon="calendar" title="Going out tomorrow" onPress={() => router.push('/bookings')} action="Schedule" headerLinkOnly>
+      <Tile icon="calendar" title="Going out tomorrow" onPress={() => router.push('/cars?view=bookings')} action="Schedule" headerLinkOnly>
         {tomorrowOut.length ? (
           tomorrowOut.map((b) => <PickupRow key={b.id} b={b} showGuest={showGuest} carLabel={carName(cars.find((c) => c.id === b.carId))} now={now} />)
         ) : (
@@ -155,38 +148,6 @@ export default function OverviewScreen() {
         )}
       </Tile>
 
-      {money ? (
-        <Tile icon="cash" title={`Money · ${monthLabel(month)}`} onPress={() => router.push('/money')} action="Money">
-          <Row style={{ gap: 18 }}>
-            <View>
-              <Muted style={{ fontSize: 13 }}>Earned so far</Muted>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{fmtMoney(money.earned)}</Text>
-            </View>
-            <View>
-              <Muted style={{ fontSize: 13 }}>Upcoming</Muted>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>{fmtMoney(money.upcoming)}</Text>
-            </View>
-          </Row>
-          {lastPayout ? <Muted>Last Turo payout: {fmtMoney(lastPayout.amount)} on {fmtTime(lastPayout.sentAt)}</Muted> : null}
-        </Tile>
-      ) : null}
-
-      {can(currentUser, 'viewActivityLog') ? (
-        <Tile icon="list" title="Recent activity" onPress={() => router.push('/activity')} action="Log">
-          {activity.slice(0, 4).map((a) => (
-            <View key={a.id}>
-              <Text style={{ color: colors.text, fontSize: 14 }} numberOfLines={1}>
-                {ACTION_LABELS[a.action]}
-                {a.carId ? ` · ${carName(cars.find((c) => c.id === a.carId))}` : ''}
-              </Text>
-              <Muted style={{ fontSize: 12 }}>
-                {actorLabel(a.actor, a.action)} · {fmtAgo(a.at, now)}
-              </Muted>
-            </View>
-          ))}
-          {!activity.length ? <Muted>Nothing yet.</Muted> : null}
-        </Tile>
-      ) : null}
     </Screen>
   );
 }
