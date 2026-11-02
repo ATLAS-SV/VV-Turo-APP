@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Image, Platform, Text, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { measure, useLogoTransition } from './logoTransitionContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAppearance, theme } from './theme';
+import { isLightLook, theme } from './theme';
 
 export const BRAND = {
   company: 'Valadon Ventures',
@@ -60,7 +60,7 @@ export function BrandFooter() {
   return (
     <View style={{ alignItems: 'center', gap: 6, marginTop: 24, opacity: 0.8 }}>
       <LogoMark size={24} />
-      <Text style={{ fontSize: 12, letterSpacing: 2, color: getAppearance() === 'light' ? BRAND.dark : BRAND.accent, fontWeight: '600' }}>VALADON VENTURES</Text>
+      <Text style={{ fontSize: 12, letterSpacing: 2, color: isLightLook() ? BRAND.dark : BRAND.accent, fontWeight: '600' }}>VALADON VENTURES</Text>
     </View>
   );
 }

@@ -42,3 +42,4 @@ yarn-error.*
 dist-demo/
 dist-demo-dark/
 dist-demo-glass/
+dist-demo-glass-light/

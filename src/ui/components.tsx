@@ -74,7 +74,29 @@ const GLASS: typeof LIGHT = {
   toastBg: 'rgba(36,16,79,0.92)',
 };
 
-const PALETTES = { light: LIGHT, dark: DARK, glass: GLASS };
+/** Frosted white glass over a soft lavender-to-cream gradient: dark text, purple actions. */
+const GLASS_LIGHT: typeof LIGHT = {
+  bg: 'transparent',
+  card: 'rgba(255,255,255,0.55)',
+  text: '#1D1340',
+  muted: '#5B5280',
+  border: 'rgba(255,255,255,0.8)',
+  primary: theme.primary,
+  primaryDark: theme.primaryDark,
+  secondary: theme.secondary,
+  accent: theme.accent,
+  primaryText: '#FFFFFF',
+  locked: '#157A3B',
+  lockedBg: 'rgba(21,122,59,0.12)',
+  unlocked: '#A84E06',
+  unlockedBg: 'rgba(168,78,6,0.12)',
+  danger: '#B42323',
+  dangerBg: 'rgba(180,35,35,0.10)',
+  neutralBg: 'rgba(255,255,255,0.65)',
+  toastBg: 'rgba(30,14,69,0.9)',
+};
+
+const PALETTES = { light: LIGHT, dark: DARK, glassLight: GLASS_LIGHT, glass: GLASS };
 
 /** Current palette. Updated in place when the appearance changes (More → Appearance). */
 export const colors: typeof LIGHT = { ...PALETTES[getAppearance()] };

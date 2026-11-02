@@ -11,14 +11,14 @@ import { ExpandProvider } from '../ui/motion';
 import { isGlass } from '../ui/bubble';
 import GlassBackdrop from '../ui/GlassBackdrop';
 import { GlassBar } from '../ui/GlassBar';
-import { applyAppearance, getAppearance, type Appearance } from '../ui/theme';
+import { applyAppearance, isLightLook, type Appearance } from '../ui/theme';
 
 /** Pages opened by a box expanding into them fade in under it instead of sliding. */
 const EXPANDED_PAGE = { animation: 'fade' as const, animationDuration: 180 };
 
 /** Headers and the tab bar follow the current palette (light, or the logo's purple in dark). */
 function navTheme(a: Appearance) {
-  const base = a === 'light' ? DefaultTheme : DarkTheme;
+  const base = isLightLook(a) ? DefaultTheme : DarkTheme;
   return {
     ...base,
     colors: { ...base.colors, primary: colors.primary, background: colors.bg, card: colors.card, text: colors.text, border: colors.border, notification: colors.danger },
@@ -67,7 +67,7 @@ function RootStack() {
         </Stack.Protected>
       </Stack>
       {signedIn ? <Toasts /> : null}
-      <StatusBar style={getAppearance() === 'light' ? 'dark' : 'light'} />
+      <StatusBar style={isLightLook() ? 'dark' : 'light'} />
     </>
   );
 }
@@ -91,7 +91,7 @@ function AppearanceGate({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider key={appearance} value={navTheme(appearance)}>
       <View style={{ flex: 1 }}>
-        {appearance === 'glass' ? <GlassBackdrop /> : null}
+        {appearance === 'glass' || appearance === 'glassLight' ? <GlassBackdrop light={appearance === 'glassLight'} /> : null}
         {children}
       </View>
     </ThemeProvider>

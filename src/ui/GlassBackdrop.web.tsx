@@ -12,6 +12,12 @@ const CSS = `
 .vv-bubble { position: absolute; bottom: -60px; border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,.08) 45%, rgba(255,255,255,.02) 70%);
   border: 1px solid rgba(255,255,255,.22); box-shadow: inset 0 0 12px rgba(255,255,255,.12); }
+.vv-glass-bg.vv-light { background: radial-gradient(110% 75% at 0% 0%, #E3D6FF 0%, transparent 60%),
+              radial-gradient(90% 70% at 100% 100%, #FFE9C2 0%, transparent 60%),
+              linear-gradient(165deg, #F6F1FF 0%, #EEE6FF 50%, #FFF7EA 100%); }
+.vv-light .vv-blob { opacity: .5; }
+.vv-light .vv-bubble { background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), rgba(255,255,255,.35) 45%, rgba(190,170,255,.12) 75%);
+  border-color: rgba(140,110,230,.28); box-shadow: inset 0 0 10px rgba(150,120,240,.15); }
 @media (prefers-reduced-motion: reduce) { .vv-blob, .vv-bubble { animation: none !important; } }
 `;
 
@@ -25,13 +31,13 @@ const BUBBLES = [
   { left: '92%', size: 24, dur: 21, delay: 5 },
 ];
 
-export default function GlassBackdrop() {
+export default function GlassBackdrop({ light = false }: { light?: boolean }) {
   return (
-    <div className="vv-glass-bg" aria-hidden="true">
+    <div className={`vv-glass-bg${light ? ' vv-light' : ''}`} aria-hidden="true">
       <style>{CSS}</style>
-      <div className="vv-blob" style={{ width: 340, height: 340, left: -90, top: 60, background: '#8B5CF6', animation: 'vv-drift-a 18s ease-in-out infinite' }} />
-      <div className="vv-blob" style={{ width: 280, height: 280, right: -80, top: '38%', background: '#D4AF37', opacity: 0.32, animation: 'vv-drift-b 22s ease-in-out infinite' }} />
-      <div className="vv-blob" style={{ width: 320, height: 320, left: '20%', bottom: -120, background: '#6D3FE0', animation: 'vv-drift-a 26s ease-in-out infinite reverse' }} />
+      <div className="vv-blob" style={{ width: 340, height: 340, left: -90, top: 60, background: light ? '#C4B0FF' : '#8B5CF6', animation: 'vv-drift-a 18s ease-in-out infinite' }} />
+      <div className="vv-blob" style={{ width: 280, height: 280, right: -80, top: '38%', background: light ? '#F6D47E' : '#D4AF37', opacity: light ? 0.45 : 0.32, animation: 'vv-drift-b 22s ease-in-out infinite' }} />
+      <div className="vv-blob" style={{ width: 320, height: 320, left: '20%', bottom: -120, background: light ? '#D9C2FF' : '#6D3FE0', animation: 'vv-drift-a 26s ease-in-out infinite reverse' }} />
       {BUBBLES.map((b, i) => (
         <div
           key={i}

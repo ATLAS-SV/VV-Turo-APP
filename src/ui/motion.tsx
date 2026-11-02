@@ -6,6 +6,7 @@ import { Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensio
 import { colors } from './components';
 import { isGlass, prefersReducedMotion as reduceMotionNow } from './bubble';
 import { ExpandCtx, type Expand } from './expandContext';
+import { isLightLook } from './theme';
 
 // ---------- (1) expand a box into its page ----------
 
@@ -36,7 +37,7 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
         progress.setValue(0);
         fade.setValue(1);
         const glass = isGlass();
-        setAnim({ rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? 'rgba(255,255,255,0.18)' : (opts.color ?? colors.card) });
+        setAnim({ rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? (isLightLook() ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)') : (opts.color ?? colors.card) });
         // Glass: the box swells like a bubble (slight overshoot, then settles). Others: smooth ease.
         const grow = glass
           ? Animated.spring(progress, { toValue: 1, speed: 13, bounciness: 7, useNativeDriver: false, restDisplacementThreshold: 0.01 })
@@ -72,7 +73,7 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
             width: progress.interpolate({ inputRange: [0, 1], outputRange: [r.w, width] }),
             height: progress.interpolate({ inputRange: [0, 1], outputRange: [r.h, height] }),
             borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.radius, 0], extrapolate: 'clamp' }),
-            backgroundColor: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.color, isGlass() ? 'rgba(36,16,90,0.7)' : colors.bg], extrapolate: 'clamp' }),
+            backgroundColor: progress.interpolate({ inputRange: [0, 1], outputRange: [anim.color, isGlass() ? (isLightLook() ? 'rgba(246,241,255,0.85)' : 'rgba(36,16,90,0.7)') : colors.bg], extrapolate: 'clamp' }),
             opacity: fade,
             shadowColor: '#000',
             shadowOpacity: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.18, 0] }),

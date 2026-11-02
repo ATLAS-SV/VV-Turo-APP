@@ -63,18 +63,23 @@ export const ACTIVE_THEME: ThemeKey = 'royalGold';
 export const theme: BrandTheme = THEMES[ACTIVE_THEME];
 
 /**
- * Appearance: 'light'; 'dark' with the logo's deep purple as the background; or 'glass' (frosted glass
+ * Appearance: 'light'; 'dark' with the logo's deep purple as the background; 'glassLight' (frosted white
+ * glass over a soft lavender-to-cream gradient); or 'glass' = Glass Dark (frosted glass
  * over a purple gradient with drifting bubbles, and bubbly motion).
  * Chosen per phone in More → Appearance. EXPO_PUBLIC_APPEARANCE=dark makes dark the starting choice.
  */
-export type Appearance = 'light' | 'dark' | 'glass';
-const envAppearance = process.env.EXPO_PUBLIC_APPEARANCE;
-export const DEFAULT_APPEARANCE: Appearance = envAppearance === 'dark' || envAppearance === 'glass' ? envAppearance : 'light';
+export type Appearance = 'light' | 'dark' | 'glassLight' | 'glass';
+const APPEARANCES: Appearance[] = ['light', 'dark', 'glassLight', 'glass'];
+const envAppearance = process.env.EXPO_PUBLIC_APPEARANCE as Appearance | undefined;
+export const DEFAULT_APPEARANCE: Appearance = envAppearance && APPEARANCES.includes(envAppearance) ? envAppearance : 'light';
 
 let current: Appearance = DEFAULT_APPEARANCE;
 const listeners = new Set<() => void>();
 
 export const getAppearance = () => current;
+
+/** Light backgrounds (Light, Glass Light): dark text, dark status bar, light chart colors. */
+export const isLightLook = (a: Appearance = current) => a === 'light' || a === 'glassLight';
 
 /** Switch appearance; modules holding colors rebuild their styles via onAppearanceChange. */
 export function applyAppearance(a: Appearance) {

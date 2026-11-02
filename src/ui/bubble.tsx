@@ -2,7 +2,7 @@
 // Light and Dark keep their calmer styling.
 import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import { getAppearance } from './theme';
+import { getAppearance, isLightLook } from './theme';
 
 // ---------- Reduce Motion (known ahead of time so animations can start instantly) ----------
 
@@ -15,7 +15,7 @@ AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => (reduceMotion
 /** True when the phone's Reduce Motion setting is on. */
 export const prefersReducedMotion = () => reduceMotion;
 
-export const isGlass = () => getAppearance() === 'glass';
+export const isGlass = () => getAppearance() === 'glass' || getAppearance() === 'glassLight';
 const nativeDriver = Platform.OS !== 'web';
 
 // ---------- glass surfaces ----------
@@ -26,14 +26,17 @@ export const radius = () => (isGlass() ? 22 : 14);
 /** Frosted-glass effect for a surface (blur behind it, soft glow, bright top edge). Empty unless Glass. */
 export function glassFx(): ViewStyle {
   if (!isGlass()) return {};
+  const light = isLightLook();
   if (Platform.OS === 'web') {
     return {
       backdropFilter: 'blur(18px) saturate(160%)',
       WebkitBackdropFilter: 'blur(18px) saturate(160%)',
-      boxShadow: '0 10px 30px rgba(8,0,40,0.35), inset 0 1px 0 rgba(255,255,255,0.22)',
+      boxShadow: light
+        ? '0 10px 30px rgba(70,40,150,0.14), inset 0 1px 0 rgba(255,255,255,0.9)'
+        : '0 10px 30px rgba(8,0,40,0.35), inset 0 1px 0 rgba(255,255,255,0.22)',
     } as ViewStyle;
   }
-  return { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } };
+  return { shadowColor: light ? '#4B2C93' : '#000', shadowOpacity: light ? 0.14 : 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } };
 }
 
 // ---------- bubbly motion ----------

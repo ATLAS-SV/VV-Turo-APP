@@ -38,7 +38,7 @@ function OverviewTabButton(props: BottomTabBarButtonProps) {
           marginTop: -24,
           backgroundColor: selected ? colors.primary : colors.primaryDark,
           borderWidth: 4,
-          borderColor: isGlass() ? 'rgba(255,255,255,0.35)' : colors.card,
+          borderColor: isGlass() ? 'rgba(255,255,255,0.6)' : colors.card,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000',
