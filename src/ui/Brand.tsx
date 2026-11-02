@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { Image, Platform, Text, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { Image, Platform, Text, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { measure, useLogoTransition } from './logoTransitionContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isLightLook, theme } from './theme';
+import { getAppearance, isLightLook, theme } from './theme';
 
 export const BRAND = {
   company: 'Valadon Ventures',
@@ -65,6 +65,100 @@ export function BrandFooter() {
   );
 }
 
+/** Colors for the PIN screen. Light and Dark keep the logo look (gold on deep purple); the Glass looks go frosted. */
+export interface PinScreenLook {
+  glass: boolean;
+  lightText: boolean;
+  bg: string;
+  frame: string;
+  panel: string;
+  mono: string;
+  sub: string;
+  demoBg: string;
+  demoText: string;
+  keyBg: string;
+  keyBorder: string;
+  keyText: string;
+  keyPressed: string;
+  icon: string;
+  okReadyBg: string;
+  okReadyFg: string;
+  dotRing: string;
+  dotFill: string;
+  error: string;
+}
+
+const LOGO_LOOK: PinScreenLook = {
+  glass: false,
+  lightText: true,
+  bg: theme.primaryDark,
+  frame: theme.accent,
+  panel: 'transparent',
+  mono: theme.accent,
+  sub: '#E9DFC4',
+  demoBg: 'rgba(212,175,55,0.16)',
+  demoText: '#F7EED5',
+  keyBg: 'rgba(255,255,255,0.04)',
+  keyBorder: 'rgba(212,175,55,0.55)',
+  keyText: '#F7EED5',
+  keyPressed: 'rgba(212,175,55,0.22)',
+  icon: theme.accent,
+  okReadyBg: theme.accent,
+  okReadyFg: theme.primaryDark,
+  dotRing: 'rgba(212,175,55,0.6)',
+  dotFill: theme.accent,
+  error: '#FFB8B8',
+};
+
+const GLASS_DARK_LOOK: PinScreenLook = {
+  glass: true,
+  lightText: true,
+  bg: 'transparent', // the glass gradient shows through
+  frame: 'rgba(244,207,94,0.75)',
+  panel: 'rgba(255,255,255,0.06)',
+  mono: '#F4CF5E',
+  sub: '#E6DCFA',
+  demoBg: 'rgba(255,255,255,0.12)',
+  demoText: '#FBF8FF',
+  keyBg: 'rgba(255,255,255,0.12)',
+  keyBorder: 'rgba(255,255,255,0.35)',
+  keyText: '#FBF8FF',
+  keyPressed: 'rgba(255,255,255,0.3)',
+  icon: '#F4CF5E',
+  okReadyBg: '#F4CF5E',
+  okReadyFg: '#24104F',
+  dotRing: 'rgba(255,255,255,0.6)',
+  dotFill: '#F4CF5E',
+  error: '#FFB8B8',
+};
+
+const GLASS_LIGHT_LOOK: PinScreenLook = {
+  glass: true,
+  lightText: false,
+  bg: 'transparent',
+  frame: 'rgba(59,31,122,0.4)',
+  panel: 'rgba(255,255,255,0.32)',
+  mono: theme.primary,
+  sub: '#4A3F75',
+  demoBg: 'rgba(59,31,122,0.08)',
+  demoText: '#2D2160',
+  keyBg: 'rgba(255,255,255,0.6)',
+  keyBorder: 'rgba(255,255,255,0.95)',
+  keyText: '#1D1340',
+  keyPressed: 'rgba(255,255,255,0.95)',
+  icon: theme.primary,
+  okReadyBg: theme.primary,
+  okReadyFg: '#FFFFFF',
+  dotRing: 'rgba(59,31,122,0.45)',
+  dotFill: theme.primary,
+  error: '#B42323',
+};
+
+export function pinScreenLook(): PinScreenLook {
+  const a = getAppearance();
+  return a === 'glass' ? GLASS_DARK_LOOK : a === 'glassLight' ? GLASS_LIGHT_LOOK : LOGO_LOOK;
+}
+
 /** Serif matching the logo's "VV" lettering. */
 export const LOGO_SERIF = Platform.select({ ios: 'Times New Roman', android: 'serif', default: '"Times New Roman", Times, serif' });
 
@@ -86,34 +180,39 @@ export function LogoScreen({ children }: { children: ReactNode }) {
     setSource({ frame: frame ?? undefined, vv: vv ?? undefined, name: name ?? undefined });
   }, [setSource]);
 
+  const look = pinScreenLook();
   return (
-    <View style={{ flex: 1, backgroundColor: BRAND.dark, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 12 }}>
+    <View style={{ flex: 1, backgroundColor: look.bg, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 12 }}>
       <View
         ref={frameRef}
         onLayout={report}
-        style={{
+        style={[
+          look.glass ? frostedPanel(look.lightText) : null,
+          {
           flex: 1,
-          borderWidth: 2,
-          borderColor: BRAND.accent,
+          borderWidth: look.glass ? 1.5 : 2,
+          borderColor: look.frame,
+          backgroundColor: look.panel,
           borderRadius: 34,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 16,
           paddingVertical: short ? 10 : 20,
           gap: short ? 2 : 6,
-        }}
+          },
+        ]}
       >
         <Text
           ref={vvRef}
           onLayout={report}
           accessibilityRole="header"
           accessibilityLabel="Valadon Ventures"
-          style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: vvFontSize(short), lineHeight: vvFontSize(short) * VV_LINE, color: BRAND.accent, letterSpacing: -2 }}
+          style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: vvFontSize(short), lineHeight: vvFontSize(short) * VV_LINE, color: look.mono, letterSpacing: -2 }}
         >
           VV
         </Text>
         <View ref={nameRef} onLayout={report} style={{ alignItems: 'center' }}>
-          <CompanyName short={short} />
+          <CompanyName short={short} color={look.mono} />
         </View>
         {children}
       </View>
@@ -125,11 +224,23 @@ export const VV_LINE = 1.1;
 export const vvFontSize = (short: boolean) => (short ? 56 : 84);
 
 /** "VALADON VENTURES" with the short gold rule under it (PIN screen and its transition). */
-export function CompanyName({ short }: { short: boolean }) {
+export function CompanyName({ short, color = BRAND.accent }: { short: boolean; color?: string }) {
   return (
     <>
-      <Text style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: short ? 12 : 15, letterSpacing: short ? 4 : 5, color: BRAND.accent }}>VALADON VENTURES</Text>
-      <View style={{ width: 64, height: 1.5, backgroundColor: BRAND.accent, opacity: 0.7, marginTop: short ? 2 : 6, marginBottom: short ? 4 : 14 }} />
+      <Text style={{ fontFamily: LOGO_SERIF, fontWeight: '700', fontSize: short ? 12 : 15, letterSpacing: short ? 4 : 5, color }}>VALADON VENTURES</Text>
+      <View style={{ width: 64, height: 1.5, backgroundColor: color, opacity: 0.7, marginTop: short ? 2 : 6, marginBottom: short ? 4 : 14 }} />
     </>
   );
+}
+
+/** Frosted-glass panel behind the PIN screen's frame (blur on web, soft shadow on phones). */
+function frostedPanel(dark: boolean): ViewStyle {
+  if (Platform.OS === 'web') {
+    return {
+      backdropFilter: 'blur(14px) saturate(150%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+      boxShadow: dark ? '0 20px 50px rgba(8,0,40,0.35), inset 0 1px 0 rgba(255,255,255,0.18)' : '0 20px 50px rgba(70,40,150,0.14), inset 0 1px 0 rgba(255,255,255,0.9)',
+    } as ViewStyle;
+  }
+  return { shadowColor: dark ? '#000' : '#4B2C93', shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } };
 }

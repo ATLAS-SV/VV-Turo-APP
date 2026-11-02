@@ -4,7 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { lockedUntil, validatePinFormat } from '../logic/pin';
 import { DEMO_MODE, DEMO_PINS, useNow, useStore } from '../state/AppStore';
 import { PinPad } from '../ui/PinPad';
-import { LogoScreen } from '../ui/Brand';
+import { LogoScreen, pinScreenLook } from '../ui/Brand';
 import { useLogoTransition } from '../ui/logoTransitionContext';
 
 /** App opens here. The PIN decides who you are and whether you're Executive or Employee. */
@@ -21,10 +21,10 @@ export default function SignIn() {
 
   return (
     <LogoScreen>
-      <StatusBar style="light" />
-      <Text style={styles.sub}>Enter your PIN</Text>
+      <StatusBar style={pinScreenLook().lightText ? 'light' : 'dark'} />
+      <Text style={[styles.sub, { color: pinScreenLook().sub }]}>Enter your PIN</Text>
       {DEMO_MODE ? (
-        <Text style={styles.demo}>
+        <Text style={[styles.demo, { color: pinScreenLook().demoText, backgroundColor: pinScreenLook().demoBg }]}>
           Demo · Executive PIN {DEMO_PINS.executive} · Employee PIN {DEMO_PINS.employee}
         </Text>
       ) : null}
@@ -51,8 +51,8 @@ function FirstRunSetup() {
 
   return (
     <LogoScreen>
-      <StatusBar style="light" />
-      <Text style={styles.sub}>
+      <StatusBar style={pinScreenLook().lightText ? 'light' : 'dark'} />
+      <Text style={[styles.sub, { color: pinScreenLook().sub }]}>
         {step === 'pin' ? 'Create your 4-digit Executive PIN' : 'Enter the same PIN again'}
       </Text>
       <PinPad

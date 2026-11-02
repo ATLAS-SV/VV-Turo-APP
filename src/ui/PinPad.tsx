@@ -1,11 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { PIN_LENGTH } from '../logic/pin';
+import { pinScreenLook } from './Brand';
+import { Bouncy, glassFx, PopIn, prefersReducedMotion } from './bubble';
 import { colors } from './components';
-import { onAppearanceChange } from './theme';
 
-/** Number pad with dots. Calls onSubmit when the check key is pressed. */
+const nativeDriver = Platform.OS !== 'web';
+
+/** Colors for one pad. 'brand' = the PIN screen (matches the look); 'light' = sheets inside the app (follows the palette). */
+function padColors(variant: 'light' | 'brand') {
+  if (variant === 'brand') {
+    const l = pinScreenLook();
+    return {
+      glass: l.glass,
+      keyBg: l.keyBg,
+      keyBorder: l.keyBorder,
+      keyBorderWidth: 1.5,
+      keyText: l.keyText,
+      keyWeight: '400' as const,
+      keyPressed: l.keyPressed,
+      icon: l.icon,
+      okIdleBg: 'transparent',
+      okIdleFg: l.icon,
+      okReadyBg: l.okReadyBg,
+      okReadyFg: l.okReadyFg,
+      dotRing: l.dotRing,
+      dotFill: l.dotFill,
+      error: l.error,
+    };
+  }
+  return {
+    glass: false,
+    keyBg: colors.card,
+    keyBorder: colors.border,
+    keyBorderWidth: StyleSheet.hairlineWidth,
+    keyText: colors.text,
+    keyWeight: '500' as const,
+    keyPressed: colors.neutralBg,
+    icon: colors.text,
+    okIdleBg: colors.neutralBg,
+    okIdleFg: colors.muted,
+    okReadyBg: colors.primary,
+    okReadyFg: colors.primaryText,
+    dotRing: colors.muted,
+    dotFill: colors.text,
+    error: colors.danger,
+  };
+}
+
+/** Number pad with dots. The 4th digit (or the check key) calls onSubmit. Keys pop in and squish like bubbles. */
 export function PinPad({
   onSubmit,
   disabled,
@@ -17,22 +61,35 @@ export function PinPad({
   disabled?: boolean;
   error?: string | null;
   submitLabel?: string;
-  /** 'brand' = gold on the dark logo background (sign-in screen). */
+  /** 'brand' = the PIN screen: gold on purple, or frosted glass in the Glass looks. */
   variant?: 'light' | 'brand';
 }) {
-  const b = variant === 'brand';
+  const c = padColors(variant);
   // Smaller keys on short screens (e.g. iPhone SE) so the whole pad fits.
   const { height } = useWindowDimensions();
   const keySize = height < 740 ? 62 : 76;
   const gap = height < 740 ? 14 : 18;
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  // Wrong PIN: the dots shake side to side.
+  const [shakeX] = useState(() => new Animated.Value(0));
+  const shook = useRef(0);
+  useEffect(() => {
+    if (attempt === shook.current) return;
+    shook.current = attempt;
+    if (!error || prefersReducedMotion()) return;
+    const step = (to: number) => Animated.timing(shakeX, { toValue: to, duration: 45, useNativeDriver: nativeDriver });
+    Animated.sequence([step(-14), step(14), step(-10), step(10), step(-5), step(0)]).start();
+  }, [attempt, error, shakeX]);
 
   const submit = async (value: string) => {
     setBusy(true);
     const keep = await onSubmit(value);
     setBusy(false);
     if (!keep) setPin('');
+    setAttempt((a) => a + 1);
   };
 
   const press = async (key: string) => {
@@ -49,43 +106,40 @@ export function PinPad({
   };
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+  const okReady = pin.length === PIN_LENGTH;
   return (
     <View style={{ alignItems: 'center', gap: height < 740 ? 10 : 18 }}>
-      <View style={styles.dots} accessibilityLabel={`${pin.length} digits entered`}>
+      <Animated.View style={{ flexDirection: 'row', gap: 14, minHeight: 18, transform: [{ translateX: shakeX }] }} accessibilityLabel={`${pin.length} digits entered`}>
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-          <View key={i} style={[styles.dot, i < pin.length && styles.dotFilled, b && styles.bDot, b && i < pin.length && styles.bDotFilled]} />
+          <Dot key={i} filled={i < pin.length} ring={c.dotRing} fill={c.dotFill} />
         ))}
-      </View>
-      <Text style={[styles.error, b && styles.bError]}>{error ?? ' '}</Text>
-      <View style={[styles.grid, { width: 3 * keySize + 2 * gap, gap }]}>
-        {keys.map((k) => {
+      </Animated.View>
+      <Text style={{ color: c.error, fontSize: 14, minHeight: 18, textAlign: 'center' }}>{error ?? ' '}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', width: 3 * keySize + 2 * gap, gap }}>
+        {keys.map((k, i) => {
           const isOk = k === 'ok';
-          const okReady = pin.length === PIN_LENGTH;
           return (
-            <Pressable
+            <PinKey
               key={k}
-              accessibilityRole="button"
-              accessibilityLabel={k === 'del' ? 'Delete' : isOk ? submitLabel : k}
-              onPress={() => press(k)}
+              size={keySize}
+              delay={i * 35}
+              label={k === 'del' ? 'Delete' : isOk ? submitLabel : k}
               disabled={disabled || busy}
-              style={({ pressed }) => [
-                styles.key,
-                { width: keySize, height: keySize, borderRadius: keySize / 2 },
-                b && styles.bKey,
-                isOk && !b && { backgroundColor: okReady ? colors.primary : colors.neutralBg },
-                isOk && b && (okReady ? styles.bOkReady : styles.bOk),
-                pressed && (b ? styles.bPressed : { opacity: 0.6 }),
-                disabled && { opacity: 0.4 },
-              ]}
+              onPress={() => press(k)}
+              bg={isOk ? (okReady ? c.okReadyBg : c.okIdleBg) : c.keyBg}
+              border={isOk && okReady ? c.okReadyBg : c.keyBorder}
+              borderWidth={c.keyBorderWidth}
+              pressedBg={isOk && okReady ? c.okReadyBg : c.keyPressed}
+              glass={c.glass}
             >
               {k === 'del' ? (
-                <Ionicons name="backspace-outline" size={26} color={b ? colors.accent : colors.text} />
+                <Ionicons name="backspace-outline" size={26} color={c.icon} />
               ) : isOk ? (
-                <Ionicons name="checkmark" size={28} color={b ? (okReady ? colors.primaryDark : colors.accent) : okReady ? colors.primaryText : colors.muted} />
+                <Ionicons name="checkmark" size={28} color={okReady ? c.okReadyFg : c.okIdleFg} />
               ) : (
-                <Text style={[styles.keyText, b && styles.bKeyText]}>{k}</Text>
+                <Text style={{ fontSize: 28, fontWeight: c.keyWeight, color: c.keyText }}>{k}</Text>
               )}
-            </Pressable>
+            </PinKey>
           );
         })}
       </View>
@@ -93,28 +147,65 @@ export function PinPad({
   );
 }
 
-function makeStyles() {
-  return StyleSheet.create({
-  dots: { flexDirection: 'row', gap: 14, minHeight: 18 },
-  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: colors.muted },
-  dotFilled: { backgroundColor: colors.text, borderColor: colors.text },
-  error: { color: colors.danger, fontSize: 14, minHeight: 18, textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', width: 3 * 76 + 2 * 18, gap: 18, justifyContent: 'center' },
-  key: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  keyText: { fontSize: 28, fontWeight: '500', color: colors.text },
-  // brand (gold on dark purple, like the logo)
-  bDot: { borderColor: 'rgba(212,175,55,0.6)' },
-  bDotFilled: { backgroundColor: colors.accent, borderColor: colors.accent },
-  bError: { color: '#FFB8B8' },
-  bKey: { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.55)' },
-  bKeyText: { color: '#F7EED5', fontWeight: '400' },
-  bOk: { backgroundColor: 'transparent' },
-  bOkReady: { backgroundColor: colors.accent, borderColor: colors.accent },
-  bPressed: { backgroundColor: 'rgba(212,175,55,0.22)' },
-});
+/** One round key: pops in, squishes when pressed, springs back with a bounce. */
+function PinKey({
+  size,
+  delay,
+  label,
+  disabled,
+  onPress,
+  bg,
+  border,
+  borderWidth,
+  pressedBg,
+  glass,
+  children,
+}: {
+  size: number;
+  delay: number;
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+  bg: string;
+  border: string;
+  borderWidth: number;
+  pressedBg: string;
+  glass: boolean;
+  children: ReactNode;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <PopIn delay={delay}>
+      <Bouncy
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        disabled={disabled}
+        onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={[
+          { width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? pressedBg : bg, borderWidth, borderColor: border },
+          glass ? glassFx() : null,
+          disabled ? { opacity: 0.4 } : null,
+        ]}
+      >
+        {children}
+      </Bouncy>
+    </PopIn>
+  );
 }
 
-let styles = makeStyles();
-onAppearanceChange(() => {
-  styles = makeStyles();
-});
+/** A PIN dot: the fill pops in with a little overshoot when a digit is typed and shrinks away when deleted. */
+function Dot({ filled, ring, fill }: { filled: boolean; ring: string; fill: string }) {
+  const [v] = useState(() => new Animated.Value(filled ? 1 : 0));
+  useEffect(() => {
+    if (prefersReducedMotion()) v.setValue(filled ? 1 : 0);
+    else if (filled) Animated.spring(v, { toValue: 1, speed: 22, bounciness: 18, useNativeDriver: nativeDriver }).start();
+    else Animated.timing(v, { toValue: 0, duration: 120, useNativeDriver: nativeDriver }).start();
+  }, [filled, v]);
+  return (
+    <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: filled ? fill : ring, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: fill, transform: [{ scale: v }] }} />
+    </View>
+  );
+}
