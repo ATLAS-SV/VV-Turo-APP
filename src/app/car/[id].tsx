@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useNavigation, usePreventRemove } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, type HostInstance } from 'react-native';
 import { bookingStatus } from '../../logic/bookings';
@@ -30,9 +30,20 @@ export default function CarDetail() {
   const [allTrips, setAllTrips] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const carriage = useRef<HostInstance>(null);
-  const { land } = useCarriageMorph();
+  const { land, canFlyBack, flyBack } = useCarriageMorph();
+  const navigation = useNavigation();
   const car = cars.find((c) => c.id === id);
   const t = id ? telemetry[id] : undefined;
+
+  // Going back to the Cars tab: the carriage shrinks back into its spot in the list. Armed once this
+  // page's carriage is the one the list carriage grew into.
+  const [flyHome, setFlyHome] = useState(false);
+  usePreventRemove(flyHome, ({ data }) => {
+    setFlyHome(false);
+    const leave = () => setTimeout(() => navigation.dispatch(data.action), 0);
+    if (data.action.type === 'GO_BACK' || data.action.type === 'POP') flyBack(carriage.current, leave);
+    else leave();
+  });
 
   useEffect(() => {
     if (id) getTrips(id).then(setTrips);
@@ -70,7 +81,10 @@ export default function CarDetail() {
       <View style={{ paddingBottom: 12 }}>
         <View
           ref={carriage}
-          onLayout={() => land(carriage.current)}
+          onLayout={() => {
+            land(carriage.current);
+            setFlyHome(canFlyBack(carriage.current));
+          }}
           accessible
           accessibilityLabel={`${plate ? `Plate ${plate}, ` : ''}${carName(car)}. ${windows.map((w) => `${w.label} ${w.value}`).join(', ')}.`}
           style={[

@@ -7,6 +7,9 @@ import { LOGO } from './logoColors';
 import { getAppearance, isLightLook, theme } from './theme';
 
 /**
+ * Going back, the same thing plays in reverse: the page's carriage shrinks back down into its spot in
+ * the list.
+ *
  * Tap a carriage in the Cars tab and it rides up and grows into the big carriage at the top of the
  * car page: same card, its window strip widens into the info windows, the plate grows. The page opens
  * underneath; once it's drawn it reports where its carriage sits (land) and the moving copy settles
@@ -20,9 +23,13 @@ type Morph = {
   fly: (from: HostInstance | null, label: Label, go: () => void) => void;
   /** The car page calls this with its carriage once it's laid out. */
   land: (to: HostInstance | null) => void;
+  /** True when this page's carriage came from a carriage in the list, so it can shrink back into it. */
+  canFlyBack: (page: HostInstance | null) => boolean;
+  /** Leaving the car page: its carriage shrinks back into the list carriage while the page closes (go). */
+  flyBack: (page: HostInstance | null, go: () => void) => void;
 };
 
-const Ctx = createContext<Morph>({ fly: (_f, _l, go) => go(), land: () => {} });
+const Ctx = createContext<Morph>({ fly: (_f, _l, go) => go(), land: () => {}, canFlyBack: () => false, flyBack: (_p, go) => go() });
 export const useCarriageMorph = () => useContext(Ctx);
 
 /** Sizes of the big carriage on the car page, shared so the moving copy ends up matching it. */
@@ -41,6 +48,8 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
   const [cover] = useState(() => new Animated.Value(0));
   const [fade] = useState(() => new Animated.Value(1));
   const s = useRef({ busy: false, flown: false, landed: false, done: false, timer: null as ReturnType<typeof setTimeout> | null });
+  // The list carriage the last flight started from, and the page carriage it landed on.
+  const trip = useRef<{ src: HostInstance; srcRect: Rect | null; label: Label; page: HostInstance | null } | null>(null);
 
   const finish = useCallback(() => {
     const st = s.current;
@@ -60,11 +69,14 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
       st.flown = false;
       st.landed = false;
       st.done = false;
+      trip.current = { src: from, srcRect: null, label, page: null };
       from.measureInWindow((x, y, w, h) => {
         if (!w || !h) {
           st.busy = false;
+          trip.current = null;
           return go();
         }
+        if (trip.current) trip.current.srcRect = { x, y, w, h };
         progress.setValue(0);
         cover.setValue(0);
         fade.setValue(1);
@@ -91,6 +103,7 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
     (to) => {
       const st = s.current;
       if (!st.busy || st.landed || !to) return;
+      if (trip.current) trip.current.page = to;
       to.measureInWindow((x, y, w, h) => {
         if (w && h) setRun((r) => (r ? { ...r, to: { x, y, w, h } } : r));
         st.landed = true;
@@ -101,8 +114,62 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
     [finish],
   );
 
-  const value = useMemo(() => ({ fly, land }), [fly, land]);
+  const canFlyBack = useCallback<Morph['canFlyBack']>(
+    (page) => !!page && !prefersReducedMotion() && trip.current?.page === page,
+    [],
+  );
+
+  const flyBack = useCallback<Morph['flyBack']>(
+    (page, go) => {
+      const st = s.current;
+      const tr = trip.current;
+      trip.current = null;
+      if (!page || !tr || tr.page !== page || st.busy || prefersReducedMotion()) return go();
+      st.busy = true;
+      st.done = false;
+      page.measureInWindow((px, py, pw, ph) => {
+        if (!pw || !ph) {
+          st.busy = false;
+          return go();
+        }
+        const pageRect = { x: px, y: py, w: pw, h: ph };
+        // Same moving copy as the way in, played backwards: big (1) → small (0). It covers the page
+        // first, then the page closes underneath.
+        progress.setValue(1);
+        cover.setValue(1);
+        fade.setValue(1);
+        setRun({ from: tr.srcRect ?? pageRect, to: pageRect, label: tr.label });
+        go();
+        // The list may have been hidden while the page was open (web), so find its carriage once it's back.
+        setTimeout(() => {
+          tr.src.measureInWindow((x, y, w, h) => {
+            const home = w && h ? { x, y, w, h } : tr.srcRect;
+            if (!home) {
+              Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
+                setRun(null);
+                st.busy = false;
+              });
+              return;
+            }
+            setRun((r) => (r ? { ...r, from: home } : r));
+            Animated.timing(cover, { toValue: 0, duration: 260, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+            Animated.spring(progress, { toValue: 0, speed: 7, bounciness: 5, useNativeDriver: false, restDisplacementThreshold: 0.005 }).start(() => {
+              Animated.timing(fade, { toValue: 0, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: false }).start(() => {
+                setRun(null);
+                st.busy = false;
+              });
+            });
+          });
+        }, 80);
+      });
+    },
+    [progress, cover, fade],
+  );
+
+  const value = useMemo(() => ({ fly, land, canFlyBack, flyBack }), [fly, land, canFlyBack, flyBack]);
   const lerp = (a: number, b: number) => progress.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
+  // For values that must not overshoot past either end (border widths, the windows that disappear).
+  const lerpC = (a: number, b: number) => progress.interpolate({ inputRange: [0, 1], outputRange: [a, b], extrapolate: 'clamp' });
   const glass = isGlass();
   const light = isLightLook();
   const card = glass ? (light ? 'rgba(255,255,255,0.96)' : 'rgba(42,24,86,0.97)') : colors.card;
@@ -149,12 +216,12 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
                 <Animated.View
                   key={i}
                   style={{
-                    flex: extra ? lerp(1, 0.0001) : 1,
-                    marginLeft: i === 0 ? 0 : extra ? lerp(SMALL_CARRIAGE.windowGap, 0) : lerp(SMALL_CARRIAGE.windowGap, BIG_CARRIAGE.windowGap),
-                    opacity: extra ? lerp(1, 0) : 1,
+                    flex: extra ? lerpC(1, 0.0001) : 1,
+                    marginLeft: i === 0 ? 0 : extra ? lerpC(SMALL_CARRIAGE.windowGap, 0) : lerpC(SMALL_CARRIAGE.windowGap, BIG_CARRIAGE.windowGap),
+                    opacity: extra ? lerpC(1, 0) : 1,
                     height: lerp(SMALL_CARRIAGE.windowH, BIG_CARRIAGE.windowH),
                     borderRadius: lerp(3, 10),
-                    borderWidth: lerp(0, 1.5),
+                    borderWidth: lerpC(0, 1.5),
                     borderColor: LOGO.gold,
                     backgroundColor: colors.neutralBg,
                   }}
