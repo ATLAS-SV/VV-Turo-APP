@@ -337,7 +337,7 @@ export default function BookingDetail() {
               icon="location-outline"
               label="Simulate: guest opens link away from lot"
               disabled={expired}
-              onPress={() => run(() => simulateGuestArrival(b.id, { latitude: 34.05, longitude: -118.25 }), '')}
+              onPress={() => run(() => simulateGuestArrival(b.id, { latitude: 32.711, longitude: -117.16 }), '')}
             />
             <Button
               variant="secondary"

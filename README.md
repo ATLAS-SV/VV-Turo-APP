@@ -139,7 +139,7 @@ Smartcar and Zubie are behind interfaces in `src/services/types.ts`; the pretend
 3. **Zubie**: confirm ZinC API access is in the plan; use its live location and parked/moving status.
 4. **Guest check-in web page** at a real address (replaces the `checkin.example.com` placeholder).
 5. **Gmail reader** for Turo emails: bookings, changes, cancellations, payouts ("payment sent"), incentives, claims (become tasks), missed earnings, to fill in bookings and the Money tab.
-6. **Real home-lot outline.** The current one is a placeholder rectangle near LAX.
+6. **Home lot:** 851 Harbor Island Dr, San Diego. The outline is a box about 80 m across around the pin (32.72559, -117.19475); tighten it to the exact parking area if needed.
 
 ## Open questions (from the planning doc)
 

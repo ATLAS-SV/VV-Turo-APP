@@ -12,8 +12,10 @@ class MockFleet implements VehicleControl, Tracker {
   /** Start from saved state (so pretend cars stay put between launches) or fresh seed data. */
   load(saved: CarTelemetry[] | null, savedTrips: Trip[] | null) {
     const now = Date.now();
-    this.telemetry = new Map((saved ?? seedTelemetry(now)).map((t) => [t.carId, t]));
-    this.trips = savedTrips ?? seedTrips(now);
+    // Saved pretend positions from the old placeholder lot near LAX start over at the real lot.
+    const stale = !!saved?.some((t) => t.position.latitude > 33.5 && t.position.longitude < -118);
+    this.telemetry = new Map((saved && !stale ? saved : seedTelemetry(now)).map((t) => [t.carId, t]));
+    this.trips = savedTrips && !stale ? savedTrips : seedTrips(now);
   }
 
   snapshot() {

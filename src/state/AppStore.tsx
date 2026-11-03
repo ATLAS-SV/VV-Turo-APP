@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { DEFAULT_SETTINGS, SEED_CARS, seedBookings, seedMoney, seedTasks } from '../data/seed';
+import { DEFAULT_SETTINGS, HOME_LOT, OLD_PLACEHOLDER_ADDRESS, SEED_CARS, seedBookings, seedMoney, seedTasks } from '../data/seed';
 import { allTasks, canSeeTask, planTaskAlerts, type TaskDoneMap, type TaskWithState } from '../logic/tasks';
 import { syncTaskNotifications } from '../services/notifications';
 import { planAutomation } from '../logic/automation';
@@ -151,6 +151,8 @@ function useAppStoreValue() {
       const merged = { ...initialPersisted(), ...saved, settings: { ...DEFAULT_SETTINGS, ...saved.settings } };
       // The pretend cars gained placeholder plates; fill them in for data saved before that.
       merged.cars = merged.cars.map((c) => (c.plate ? c : { ...c, plate: SEED_CARS.find((x) => x.id === c.id)?.plate }));
+      // Phones that saved the old placeholder lot near LAX switch to the real one at Harbor Island.
+      if (merged.settings.homeLot?.address === OLD_PLACEHOLDER_ADDRESS) merged.settings = { ...merged.settings, homeLot: HOME_LOT };
       // Demo build: ready-made people so anyone can try both views without setting up PINs.
       if (DEMO_MODE && !merged.users.length) {
         const now = new Date().toISOString();

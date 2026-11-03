@@ -10,7 +10,7 @@ import { pretendVehicleControl } from '../functions/_shared/vehicles.ts';
 
 const sql = db();
 const vehicles = pretendVehicleControl(sql);
-const IN_LOT = { lat: 33.9462, lng: -118.3838 };
+const IN_LOT = { lat: 32.72559, lng: -117.19475 };
 const MIN = 60_000;
 
 /** Turo's short local format, e.g. "11/5/26 6:30 am" (Pacific). */
@@ -50,7 +50,7 @@ Deno.test('server: emails → bookings → guest check-in → relock → auto-lo
   const status = await checkInStatus(sql, b.check_in_token, now);
   assertEquals(status?.guestFirstName, 'Taylor');
   assertEquals(status?.expired, false);
-  const away = await checkInAttempt(sql, vehicles, { token: b.check_in_token, lat: 34.05, lng: -118.25, accuracy: 10 }, now);
+  const away = await checkInAttempt(sql, vehicles, { token: b.check_in_token, lat: 32.711, lng: -117.16, accuracy: 10 }, now);
   assertEquals(away && !away.ok && away.reason, 'outside_lot');
   const ok = await checkInAttempt(sql, vehicles, { token: b.check_in_token, ...IN_LOT, accuracy: 10 }, now);
   assert(ok?.ok);

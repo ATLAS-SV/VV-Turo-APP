@@ -127,8 +127,8 @@ function HomeLotEditor() {
       <Muted>Address</Muted>
       <TextInput value={address} onChangeText={setAddress} style={inputStyle()} />
       <Muted>
-        Boundary: {settings.homeLot.polygon.length}-point outline. The current outline is a placeholder near LAX; it will be
-        redrawn around the real lot once the address is confirmed.
+        Boundary: {settings.homeLot.polygon.length}-point outline around the lot. Cars inside it count as in the lot (auto-lock,
+        guest check-in). It’s a box about 80 m across around the pin; ask to tighten it to the exact parking area.
       </Muted>
       <Button
         label="Save"

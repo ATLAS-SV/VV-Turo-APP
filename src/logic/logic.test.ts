@@ -12,7 +12,7 @@ import type { Booking, CarTelemetry, User } from './types';
 const NOW = new Date('2026-11-02T03:00:00Z');
 const minAgo = (m: number) => new Date(NOW.getTime() - m * 60_000).toISOString();
 const minFromNow = (m: number) => new Date(NOW.getTime() + m * 60_000).toISOString();
-const AWAY = { latitude: 34.0119, longitude: -118.4916 };
+const AWAY = { latitude: 32.7976, longitude: -117.2404 }; // Pacific Beach
 const S = DEFAULT_SETTINGS;
 
 function tel(p: Partial<CarTelemetry> = {}): CarTelemetry {

@@ -5,20 +5,24 @@ import type { Booking, Car, CarTelemetry, EarningItem, EarningType, Payout, Sett
 const MIN = 60_000;
 const iso = (ms: number) => new Date(ms).toISOString();
 
-// PLACEHOLDER home lot: a rectangle near LAX. Replace with the real lot boundary
-// (Executive settings → Home lot) once the address is confirmed.
-export const PLACEHOLDER_HOME_LOT = {
+// The home lot: 851 Harbor Island Dr, San Diego. The outline is a box about 80 m across around the
+// pin (32.72559, -117.19475); tighten it to the actual parking area if needed.
+const LOT_CENTER = { latitude: 32.72559, longitude: -117.19475 };
+export const HOME_LOT = {
   name: 'Home lot',
-  address: 'Address TBD (placeholder near LAX)',
+  address: '851 Harbor Island Dr, San Diego, CA 92101',
   polygon: [
-    { latitude: 33.947, longitude: -118.385 },
-    { latitude: 33.947, longitude: -118.3825 },
-    { latitude: 33.9455, longitude: -118.3825 },
-    { latitude: 33.9455, longitude: -118.385 },
+    { latitude: 32.72594, longitude: -117.1952 },
+    { latitude: 32.72594, longitude: -117.1943 },
+    { latitude: 32.72524, longitude: -117.1943 },
+    { latitude: 32.72524, longitude: -117.1952 },
   ],
 };
 
-export const IN_LOT = { latitude: 33.9462, longitude: -118.3838 };
+/** The old placeholder lot near LAX: phones that saved it get switched to HOME_LOT on launch. */
+export const OLD_PLACEHOLDER_ADDRESS = 'Address TBD (placeholder near LAX)';
+
+export const IN_LOT = LOT_CENTER;
 
 export const DEFAULT_SETTINGS: Settings = {
   autoLockParkedMinutes: 10,
@@ -35,7 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   checkoutPhotosDueMinutesAfter: 120,
   taskReminderMinutes: 60,
   taskPhoneNotifications: true,
-  homeLot: PLACEHOLDER_HOME_LOT,
+  homeLot: HOME_LOT,
 };
 
 export const SEED_CARS: Car[] = [
@@ -49,7 +53,7 @@ export function seedTelemetry(now: number): CarTelemetry[] {
   return [
     {
       carId: 'gv70',
-      position: { latitude: 33.9466, longitude: -118.3843 },
+      position: { latitude: 32.7257, longitude: -117.1949 },
       engineOn: false,
       moving: false,
       parkedSince: iso(now - 5 * 60 * MIN),
@@ -60,7 +64,7 @@ export function seedTelemetry(now: number): CarTelemetry[] {
     {
       // Demo: left unlocked in the lot 12 minutes ago → auto-lock fires.
       carId: 'tx',
-      position: { latitude: 33.9459, longitude: -118.3832 },
+      position: { latitude: 32.72548, longitude: -117.1946 },
       engineOn: false,
       moving: false,
       parkedSince: iso(now - 12 * MIN),
@@ -69,9 +73,9 @@ export function seedTelemetry(now: number): CarTelemetry[] {
       updatedAt: iso(now),
     },
     {
-      // On a guest trip in Santa Monica.
+      // On a guest trip in Pacific Beach.
       carId: 'bmw3',
-      position: { latitude: 34.0119, longitude: -118.4916 },
+      position: { latitude: 32.7976, longitude: -117.2404 },
       engineOn: true,
       moving: true,
       parkedSince: null,
@@ -82,7 +86,7 @@ export function seedTelemetry(now: number): CarTelemetry[] {
     {
       // Demo: trip ended 90 min ago, still not back → late-return alert.
       carId: 'rogue',
-      position: { latitude: 33.9617, longitude: -118.3531 },
+      position: { latitude: 32.7237, longitude: -117.1691 },
       engineOn: false,
       moving: false,
       parkedSince: iso(now - 70 * MIN),
@@ -98,10 +102,10 @@ export function seedTrips(now: number): Trip[] {
   return [
     { id: 't1', carId: 'gv70', departedAt: iso(now - 30 * h), arrivedAt: iso(now - 5 * h), distanceMi: 142.3, fromLabel: 'Home lot', toLabel: 'Home lot', stops: 6 },
     { id: 't2', carId: 'gv70', departedAt: iso(now - 80 * h), arrivedAt: iso(now - 50 * h), distanceMi: 88.1, fromLabel: 'Home lot', toLabel: 'Home lot', stops: 4 },
-    { id: 't3', carId: 'tx', departedAt: iso(now - 50 * MIN), arrivedAt: iso(now - 12 * MIN), distanceMi: 9.4, fromLabel: 'Car wash, Inglewood', toLabel: 'Home lot', stops: 1 },
+    { id: 't3', carId: 'tx', departedAt: iso(now - 50 * MIN), arrivedAt: iso(now - 12 * MIN), distanceMi: 9.4, fromLabel: 'Car wash, Midway', toLabel: 'Home lot', stops: 1 },
     { id: 't4', carId: 'tx', departedAt: iso(now - 74 * h), arrivedAt: iso(now - 26 * h), distanceMi: 311.7, fromLabel: 'Home lot', toLabel: 'Home lot', stops: 9 },
-    { id: 't5', carId: 'bmw3', departedAt: iso(now - 26 * h), arrivedAt: null, distanceMi: 47.2, fromLabel: 'Home lot', toLabel: 'Santa Monica (driving)', stops: 3 },
-    { id: 't6', carId: 'rogue', departedAt: iso(now - 52 * h), arrivedAt: iso(now - 70 * MIN), distanceMi: 63.9, fromLabel: 'Home lot', toLabel: 'Inglewood', stops: 5 },
+    { id: 't5', carId: 'bmw3', departedAt: iso(now - 26 * h), arrivedAt: null, distanceMi: 47.2, fromLabel: 'Home lot', toLabel: 'Pacific Beach (driving)', stops: 3 },
+    { id: 't6', carId: 'rogue', departedAt: iso(now - 52 * h), arrivedAt: iso(now - 70 * MIN), distanceMi: 63.9, fromLabel: 'Home lot', toLabel: 'Little Italy', stops: 5 },
   ];
 }
 
