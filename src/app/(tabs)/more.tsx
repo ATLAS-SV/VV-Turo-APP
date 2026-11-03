@@ -31,7 +31,7 @@ export default function MoreScreen() {
         <Divider />
         {isExec ? (
           <>
-            <ListItem icon="time" label="Hours" sub="Clock in/out, everyone's hours" onPress={() => router.navigate('/hours')} />
+            <ListItem icon="time" label="Team & hours" sub="Everyone's hours, PINs and car access" onPress={() => router.push('/team')} />
           </>
         ) : (
           <ListItem icon="calendar" label="Trips" sub="Upcoming trip times" onPress={() => router.navigate('/cars?view=bookings')} />
@@ -42,8 +42,6 @@ export default function MoreScreen() {
           <SectionTitle>Executive</SectionTitle>
           <Card style={{ paddingVertical: 2 }}>
             <ListItem icon="options" label="Settings" sub="Auto-lock, guest link, home lot" onPress={() => router.push('/settings')} />
-            <Divider />
-            <ListItem icon="people" label="Team & PINs" sub="Add or remove people, change PINs" onPress={() => router.push('/team')} />
             <Divider />
             <ListItem icon="car" label="Cars" sub="Add cars, fill in years" onPress={() => router.push('/fleet')} />
           </Card>

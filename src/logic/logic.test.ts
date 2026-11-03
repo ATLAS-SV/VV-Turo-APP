@@ -162,6 +162,14 @@ describe('roles', () => {
     expect(canUnlockCar(emp, 'c2', { ...S, employeeUnlockScope: 'assigned' })).toBe(false);
     expect(canUnlockCar(emp, 'c1', { ...S, employeeUnlockScope: 'assigned' })).toBe(true);
   });
+  it('per-person car access wins over the old fleet-wide setting', () => {
+    const picked: User = { ...emp, carAccess: 'picked' };
+    expect(canUnlockCar(picked, 'c1', S)).toBe(true);
+    expect(canUnlockCar(picked, 'c2', S)).toBe(false);
+    const all: User = { ...emp, carAccess: 'all', assignedCarIds: [] };
+    expect(canUnlockCar(all, 'c2', { ...S, employeeUnlockScope: 'assigned' })).toBe(true);
+    expect(canUnlockCar({ ...emp, role: 'executive', carAccess: 'picked', assignedCarIds: [] }, 'c2', S)).toBe(true);
+  });
 });
 
 describe('hours', () => {

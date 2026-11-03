@@ -62,7 +62,7 @@ function RootStack() {
           <Stack.Protected guard={isExec}>
             <Stack.Screen name="activity" options={{ title: 'Activity log', ...EXPANDED_PAGE }} />
             <Stack.Screen name="settings" options={{ title: 'Settings', ...EXPANDED_PAGE }} />
-            <Stack.Screen name="team" options={{ title: 'Team & PINs', ...EXPANDED_PAGE }} />
+            <Stack.Screen name="team" options={{ title: 'Team & hours', ...EXPANDED_PAGE }} />
             <Stack.Screen name="fleet" options={{ title: 'Cars', ...EXPANDED_PAGE }} />
           </Stack.Protected>
         </Stack.Protected>

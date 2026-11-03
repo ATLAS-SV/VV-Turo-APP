@@ -82,22 +82,7 @@ export default function SettingsScreen() {
 
       <SectionTitle>Employees & security</SectionTitle>
       <Card>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>Employees can unlock</Text>
-        <Row>
-          <Button
-            style={{ flex: 1 }}
-            label="All cars"
-            variant={settings.employeeUnlockScope === 'all' ? 'primary' : 'secondary'}
-            onPress={() => updateSettings({ employeeUnlockScope: 'all' }, 'Employees can unlock all cars')}
-          />
-          <Button
-            style={{ flex: 1 }}
-            label="Assigned only"
-            variant={settings.employeeUnlockScope === 'assigned' ? 'primary' : 'secondary'}
-            onPress={() => updateSettings({ employeeUnlockScope: 'assigned' }, 'Employees can unlock assigned cars only')}
-          />
-        </Row>
-        <Muted>Assign cars to each person under Team & PINs. Locking is always allowed.</Muted>
+        <Muted>Which cars each employee can unlock is set per person: More → Team & hours, tap their plates. Locking is always allowed.</Muted>
         {num('appRelockMinutes', 'Ask for PIN again after', 'Time the app can sit in the background.', 'min', 1, 60)}
       </Card>
 

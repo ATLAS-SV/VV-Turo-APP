@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View, type HostInstance } from 'react-native';
 import { bookingStatus, pickupsOn, returnsOn } from '../../logic/bookings';
 import { isInLot } from '../../logic/geo';
-import { openShift } from '../../logic/hours';
+import { formatMinutes, openShift, shiftMinutes } from '../../logic/hours';
 import { earningItems, monthKey, summarizeMonth } from '../../logic/money';
 import { can } from '../../logic/permissions';
 import type { TaskWithState } from '../../logic/tasks';
@@ -30,7 +30,7 @@ const DAY_END_H = 22;
  */
 export default function OverviewScreen() {
   const store = useStore();
-  const { currentUser, cars, telemetry, settings, bookings, activity, shifts, toggleClock, completeTask, earningExtras, payouts } = store;
+  const { currentUser, cars, telemetry, settings, bookings, activity, shifts, completeTask, earningExtras, payouts } = store;
   const now = useNow(30_000);
   const tasks = useTasks();
   const items = useMemo(() => earningItems(bookings, earningExtras), [bookings, earningExtras]);
@@ -77,6 +77,7 @@ export default function OverviewScreen() {
   const hiddenCount = alerts.length + openTasks.length - alertRows.length - taskRows.length;
 
   const money = showMoney ? summarizeMonth(items, payouts, monthKey(now), now) : null;
+  const onTheClock = new Set(shifts.filter((x) => !x.clockOut).map((x) => x.userId)).size;
   const myShift = openShift(shifts, currentUser.id);
 
   // Purple band behind the pass in Light (the dark looks are already purple).
@@ -129,13 +130,24 @@ export default function OverviewScreen() {
             ) : (
               <Pill value={String(inLot.length)} label="in lot" onPress={() => router.push('/map')} />
             )}
-            <Pill
-              value={myShift ? 'Clock out' : 'Clock in'}
-              label={myShift ? 'on the clock' : 'hours'}
-              tone={myShift ? colors.danger : colors.primary}
-              small
-              onPress={toggleClock}
-            />
+            {/* Hours: Executives go to Team & hours (everyone's hours and car access), employees to their own Hours page. */}
+            {isExec ? (
+              <Pill
+                value={String(onTheClock)}
+                label="on the clock"
+                tone={onTheClock ? colors.locked : colors.primary}
+                small
+                onPress={() => router.push('/team')}
+              />
+            ) : (
+              <Pill
+                value={myShift ? formatMinutes(shiftMinutes(myShift, now)) : 'Off'}
+                label={myShift ? 'on the clock' : 'hours'}
+                tone={myShift ? colors.locked : colors.primary}
+                small
+                onPress={() => router.navigate('/hours')}
+              />
+            )}
           </View>
         </PopIn>
 

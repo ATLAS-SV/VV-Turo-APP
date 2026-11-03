@@ -16,6 +16,7 @@ import type {
   Actor,
   Booking,
   Car,
+  CarAccess,
   CarTelemetry,
   EarningItem,
   HomePage,
@@ -558,6 +559,15 @@ function useAppStoreValue() {
     [update],
   );
 
+  /** Executive: which cars a person may unlock: all of them, or only the picked ones. */
+  const setCarAccess = useCallback(
+    (userId: string, access: CarAccess, carIds: string[]) => {
+      if (!requireExec()) return;
+      update((s) => ({ ...s, users: s.users.map((u) => (u.id === userId ? { ...u, carAccess: access, assignedCarIds: carIds } : u)) }));
+    },
+    [update],
+  );
+
   const completeTask = useCallback(
     (taskId: string, done: boolean) => {
       const s = ref.current;
@@ -686,6 +696,7 @@ function useAppStoreValue() {
     changePin,
     removeUser,
     setAssignedCars,
+    setCarAccess,
     setHomePage,
     completeTask,
     saveCar,

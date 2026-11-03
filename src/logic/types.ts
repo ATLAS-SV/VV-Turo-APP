@@ -8,12 +8,19 @@ export interface User {
   role: Role;
   pinHash: string;
   pinSalt: string;
-  /** Cars this person may unlock when employee unlock scope is "assigned". */
+  /** Cars this person may unlock when their car access is "picked". */
   assignedCarIds: string[];
+  /**
+   * Which cars an employee may unlock: every car (including cars added later) or only assignedCarIds.
+   * Unset on people added before per-person access existed: follows settings.employeeUnlockScope.
+   */
+  carAccess?: CarAccess;
   /** Page the app opens to after this person enters their PIN. */
   homePage?: HomePage;
   createdAt: string;
 }
+
+export type CarAccess = 'all' | 'picked';
 
 export type HomePage = 'overview' | 'cars' | 'map' | 'bookings' | 'money' | 'hours';
 
