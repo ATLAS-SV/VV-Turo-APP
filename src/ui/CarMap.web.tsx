@@ -18,9 +18,10 @@ export default function CarMap({ selectedCarId, onSelectCar, visibleCarIds, fitN
       <MapContainer center={[center.latitude, center.longitude]} zoom={11} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
           maxZoom={19}
         />
+        <CreditLinksInNewTab />
         <Focus
           points={shown.map((c) => telemetry[c.id].position)}
           selected={selectedCarId ? telemetry[selectedCarId]?.position ?? null : null}
@@ -68,5 +69,17 @@ function Focus({ points, selected, nonce }: { points: LatLng[]; selected: LatLng
     else if (points.length) map.flyToBounds(points.map((p) => [p.latitude, p.longitude] as [number, number]), { padding: [56, 56], maxZoom: 14, duration: 0.6 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, map]);
+  return null;
+}
+
+/**
+ * The map's credit links open in a new tab: as a home-screen app there's no back button, so following
+ * them in place would leave the app.
+ */
+function CreditLinksInNewTab() {
+  const map = useMap();
+  useEffect(() => {
+    map.attributionControl?.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a>');
+  }, [map]);
   return null;
 }

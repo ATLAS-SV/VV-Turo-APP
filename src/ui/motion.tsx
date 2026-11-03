@@ -1,7 +1,8 @@
 // Motion: (1) a tapped box/card expands to fill the screen and becomes the page it opens;
 // (2) swipe left/right on a tab page to move to the neighbouring tab.
 // Built on React Native's own Animated + PanResponder, so it works the same on iPhone and the web app.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useRootNavigationState } from 'expo-router';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, PanResponder, Platform, StyleSheet, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
 import { colors } from './components';
 import { isGlass, prefersReducedMotion as reduceMotionNow } from './bubble';
@@ -17,12 +18,19 @@ export { useExpand } from './expandContext';
 
 const FADE_MS = 200;
 
+/** A page that grew out of a box: where the box was, so leaving the page can shrink back into it. */
+type Trail = { depth: number; rect: Rect; radius: number; color: string };
+type BackControl = { setDepth: (n: number) => void; leaving: (fromDepth: number, toDepth: number) => void };
+const BackCtx = createContext<BackControl | null>(null);
+
 export function ExpandProvider({ children }: { children: ReactNode }) {
   const { width, height } = useWindowDimensions();
   const [anim, setAnim] = useState<{ rect: Rect; radius: number; color: string } | null>(null);
   const [progress] = useState(() => new Animated.Value(0));
   const [fade] = useState(() => new Animated.Value(1));
   const busy = useRef(false);
+  const depth = useRef(1);
+  const trail = useRef<Trail[]>([]);
 
   const expand = useCallback<Expand>(
     (from, go, opts = {}) => {
@@ -36,10 +44,12 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
         progress.setValue(0);
         fade.setValue(1);
         const glass = isGlass();
-        setAnim({ rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? (isLightLook() ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)') : (opts.color ?? colors.card) });
+        const box = { rect: { x, y, w, h }, radius: glass ? 22 : (opts.radius ?? 14), color: glass ? (isLightLook() ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)') : (opts.color ?? colors.card) };
+        setAnim(box);
         // The box swells like a bubble (slight overshoot, then settles), in every appearance.
         const grow = Animated.spring(progress, { toValue: 1, speed: 13, bounciness: 7, useNativeDriver: false, restDisplacementThreshold: 0.01 });
         grow.start(() => {
+          trail.current.push({ depth: depth.current + 1, ...box }); // remembered for the way back
           go(); // the page opens underneath the fully expanded surface…
           setTimeout(() => {
             // …then the surface fades away to reveal it.
@@ -54,9 +64,40 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
     [progress, fade],
   );
 
+  /**
+   * Leaving a page (back): a page that grew out of a box shrinks back into it; any other page fades out.
+   * Runs as the previous page appears, starting from a full-screen cover so there's no hard cut.
+   */
+  const leaving = useCallback(
+    (fromDepth: number, toDepth: number) => {
+      const box = trail.current.find((t) => t.depth === fromDepth);
+      trail.current = trail.current.filter((t) => t.depth <= toDepth);
+      if (reduceMotionNow() || busy.current) return;
+      busy.current = true;
+      progress.setValue(1);
+      fade.setValue(1);
+      setAnim(box ?? { rect: { x: 0, y: 0, w: width, h: height }, radius: 0, color: colors.bg });
+      const done = () => {
+        setAnim(null);
+        busy.current = false;
+      };
+      if (box) {
+        Animated.parallel([
+          Animated.timing(progress, { toValue: 0, duration: 320, easing: Easing.inOut(Easing.cubic), useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: 260, delay: 120, easing: Easing.in(Easing.quad), useNativeDriver: false }),
+        ]).start(done);
+      } else {
+        Animated.timing(fade, { toValue: 0, duration: 240, easing: Easing.out(Easing.quad), useNativeDriver: false }).start(done);
+      }
+    },
+    [progress, fade, width, height],
+  );
+  const back = useMemo<BackControl>(() => ({ setDepth: (n) => (depth.current = n), leaving }), [leaving]);
+
   const r = anim?.rect;
   return (
     <ExpandCtx.Provider value={expand}>
+      <BackCtx.Provider value={back}>
       {children}
       {anim && r ? (
         <Animated.View
@@ -78,8 +119,42 @@ export function ExpandProvider({ children }: { children: ReactNode }) {
           }}
         />
       ) : null}
+      </BackCtx.Provider>
     </ExpandCtx.Provider>
   );
+}
+
+/**
+ * Watches the page stack: when a page is closed (back, swipe back, browser back) it plays the way-out
+ * animation. `skip` lets another animation (the car carriage shrinking home) handle it instead.
+ */
+export function StackBackTransition({ skip }: { skip?: () => boolean }) {
+  const state = useRootNavigationState();
+  const ctl = useContext(BackCtx);
+  const prev = useRef<{ key?: string; n: number } | null>(null);
+  useLayoutEffect(() => {
+    const routes = appStack(state as NavState)?.routes ?? [];
+    const n = routes.length || 1;
+    const key = routes[0]?.key;
+    const p = prev.current;
+    prev.current = { key, n };
+    if (!ctl) return;
+    ctl.setDepth(n);
+    if (p && p.key === key && n < p.n && !skip?.()) ctl.leaving(p.n, n);
+  }, [state, ctl, skip]);
+  return null;
+}
+
+type NavState = { routes?: { name: string; key?: string; state?: NavState }[]; index?: number } | undefined;
+
+/** The app's page stack (the one holding the tabs), found under expo-router's hidden root route. */
+function appStack(state: NavState): NavState {
+  let s = state;
+  for (let i = 0; i < 4 && s; i++) {
+    if (s.routes?.some((r) => r.name === '(tabs)')) return s;
+    s = s.routes?.[s.index ?? 0]?.state;
+  }
+  return undefined;
 }
 
 // ---------- (2) swipe between tabs ----------

@@ -7,8 +7,8 @@ import { AppStoreProvider, useStore } from '../state/AppStore';
 import { Logo } from '../ui/Brand';
 import { colors, Toasts } from '../ui/components';
 import { LogoTransitionProvider } from '../ui/LogoTransition';
-import { ExpandProvider } from '../ui/motion';
-import { CarriageMorphProvider } from '../ui/CarriageMorph';
+import { ExpandProvider, StackBackTransition } from '../ui/motion';
+import { CarriageMorphProvider, useCarriageMorph } from '../ui/CarriageMorph';
 import { isGlass } from '../ui/bubble';
 import GlassBackdrop from '../ui/GlassBackdrop';
 import LogoGradient from '../ui/LogoGradient';
@@ -32,6 +32,7 @@ const glassHeader = () => <GlassBar edge="top" />;
 
 function RootStack() {
   const { loaded, currentUser } = useStore();
+  const morph = useCarriageMorph();
   if (!loaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28, backgroundColor: LOGO.to }}>
@@ -70,6 +71,8 @@ function RootStack() {
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
+      {/* Leaving a page plays its way-out animation (the car page's carriage handles its own). */}
+      <StackBackTransition skip={morph.busy} />
       {signedIn ? <Toasts /> : null}
       <StatusBar style={isLightLook() ? 'dark' : 'light'} />
     </>

@@ -27,9 +27,11 @@ type Morph = {
   canFlyBack: (page: HostInstance | null) => boolean;
   /** Leaving the car page: its carriage shrinks back into the list carriage while the page closes (go). */
   flyBack: (page: HostInstance | null, go: () => void) => void;
+  /** True while a carriage is flying (so the generic page-exit animation stays out of the way). */
+  busy: () => boolean;
 };
 
-const Ctx = createContext<Morph>({ fly: (_f, _l, go) => go(), land: () => {}, canFlyBack: () => false, flyBack: (_p, go) => go() });
+const Ctx = createContext<Morph>({ fly: (_f, _l, go) => go(), land: () => {}, canFlyBack: () => false, flyBack: (_p, go) => go(), busy: () => false });
 export const useCarriageMorph = () => useContext(Ctx);
 
 /** Sizes of the big carriage on the car page, shared so the moving copy ends up matching it. */
@@ -166,7 +168,8 @@ export function CarriageMorphProvider({ children }: { children: ReactNode }) {
     [progress, cover, fade],
   );
 
-  const value = useMemo(() => ({ fly, land, canFlyBack, flyBack }), [fly, land, canFlyBack, flyBack]);
+  const isBusy = useCallback(() => s.current.busy, []);
+  const value = useMemo(() => ({ fly, land, canFlyBack, flyBack, busy: isBusy }), [fly, land, canFlyBack, flyBack, isBusy]);
   const lerp = (a: number, b: number) => progress.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
   // For values that must not overshoot past either end (border widths, the windows that disappear).
   const lerpC = (a: number, b: number) => progress.interpolate({ inputRange: [0, 1], outputRange: [a, b], extrapolate: 'clamp' });
