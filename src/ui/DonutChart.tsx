@@ -32,17 +32,19 @@ function slicePath(cx: number, cy: number, rOuter: number, rInner: number, a0: n
   ].join(' ');
 }
 
-/** Donut chart with the total in the middle. */
+/** Donut chart with the total in the middle. `onDark` draws it for the purple engine (light text, dark center). */
 export function DonutChart({
   slices,
   size = 150,
   centerLabel,
   centerValue,
+  onDark = false,
 }: {
   slices: DonutSlice[];
   size?: number;
   centerLabel: string;
   centerValue: string;
+  onDark?: boolean;
 }) {
   const parts = slices.filter((s) => s.value > 0);
   const total = parts.reduce((s, p) => s + p.value, 0);
@@ -59,8 +61,9 @@ export function DonutChart({
       accessibilityLabel={`${centerLabel} ${centerValue}. ${parts.map((p) => `${p.label} ${Math.round((p.value / total) * 100)}%`).join(', ')}`}
     >
       <Svg width={size} height={size}>
+        {onDark ? <Circle cx={c} cy={c} r={rInner - 1} fill="rgba(20,8,60,0.55)" /> : null}
         {total === 0 ? (
-          <Circle cx={c} cy={c} r={(rOuter + rInner) / 2} stroke={colors.border} strokeWidth={rOuter - rInner} fill="none" />
+          <Circle cx={c} cy={c} r={(rOuter + rInner) / 2} stroke={onDark ? 'rgba(255,255,255,0.2)' : colors.border} strokeWidth={rOuter - rInner} fill="none" />
         ) : parts.length === 1 ? (
           <Circle cx={c} cy={c} r={(rOuter + rInner) / 2} stroke={parts[0].color} strokeWidth={rOuter - rInner} fill="none" />
         ) : (
@@ -75,8 +78,8 @@ export function DonutChart({
       </Svg>
       {centerLabel || centerValue ? (
         <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-          <Text style={{ fontSize: 11, color: colors.muted }}>{centerLabel}</Text>
-          <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text }}>{centerValue}</Text>
+          <Text style={{ fontSize: 11, color: onDark ? '#D9CCF7' : colors.muted }}>{centerLabel}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: onDark ? '#FFFFFF' : colors.text }}>{centerValue}</Text>
         </View>
       ) : null}
     </View>
